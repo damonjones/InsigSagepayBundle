@@ -296,7 +296,7 @@ abstract class Request
      *
      * @Assert\True
      */
-    protected function isBillingStateValid()
+    public function isBillingStateValid()
     {
         return !('US' === $this->billingCountry && !$this->billingState);
     }
@@ -306,7 +306,7 @@ abstract class Request
      *
      * @Assert\True
      */
-    protected function isDeliveryStateValid()
+    public function isDeliveryStateValid()
     {
         return !('US' === $this->deliveryCountry && !$this->deliveryState);
     }
@@ -316,7 +316,7 @@ abstract class Request
      *
      * @Assert\True
      */
-    protected function isComplete()
+    public function isComplete()
     {
         return 0 === count(array_diff(self::$required, array_keys($this->toArray())));
     }
