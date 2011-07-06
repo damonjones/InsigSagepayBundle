@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <parameters>
+        <parameter key="insig_sagepay.manager.class">Insig\SagepayBundle\SagepayManager</parameter>
+    </parameters>
+
+    <services>
+
+        <service id="insig_sagepay.manager" class="%insig_sagepay.manager.class%">
+            <call method="setValidator">
+                <argument type="service" id="validator" />
+            </call>
+            <call method="setRouter">
+                <argument type="service" id="router" />
+            </call>
+            <call method="setUrl">
+                <argument>%insig_sagepay.url%</argument>
+            </call>
+            <call method="setVpsProtocol">
+                <argument>%insig_sagepay.vps_protocol%</argument>
+            </call>
+            <call method="setVendor">
+                <argument>%insig_sagepay.vendor%</argument>
+            </call>
+            <call method="setNotificationUrl">
+                <argument>%insig_sagepay.notification_url%</argument>
+            </call>
+        </service>
+
+        <service id="sagepay" alias="insig_sagepay.manager" />
+
+    </services>
+
+</container>
