@@ -164,7 +164,7 @@ class Notification
     /**
      * @Assert\True
      */
-    protected function isAuthenticated()
+    public function isAuthenticated()
     {
         $computedSignature = strtoupper(
             md5(
