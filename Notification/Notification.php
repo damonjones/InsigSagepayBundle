@@ -64,7 +64,7 @@ class Notification
     // Long Integer.
     // Only present if the transaction was successfully authorised (Status = "OK")
     /**
-     * @Assert\type(integer)
+     * @Assert\type("integer")
      */
     protected $txAuthNo;
 
@@ -161,36 +161,6 @@ class Notification
      */
     protected $vpsSignature;
 
-    /**
-     * @Assert\True
-     */
-    public function isAuthenticated()
-    {
-        $computedSignature = strtoupper(
-            md5(
-                $this->vpsTxId .
-                $this->vendorTxCode .
-                $this->status .
-                $this->txAuthNo .
-                $this->vendorName .
-                $this->avsCv2 .
-                $this->securityKey .
-                $this->addressResult .
-                $this->postCodeResult .
-                $this->cv2Result .
-                $this->giftAid .
-                $this->threeDSecureStatus .
-                $this->cavv .
-                $this->addressStatus .
-                $this->payerStatus .
-                $this->cardType .
-                $this->last4Digits
-            )
-        );
-
-        return $this->vpsSignature === $computedSignature;
-    }
-
     // public API ------------------------------------------------------------
     public function __construct($data)
     {
@@ -204,7 +174,7 @@ class Notification
         if (in_array('StatusDetail', $arr)) {
             $this->statusDetail     = $arr['StatusDetail'];
         }
-        $this->txAuthNo             = $arr['TxAuthNo'];
+        $this->txAuthNo             = (int) $arr['TxAuthNo'];
         $this->avsCv2               = $arr['AVSCV2'];
         $this->addressResult        = $arr['AddressResult'];
         $this->postCodeResult       = $arr['PostCodeResult'];
@@ -236,6 +206,11 @@ class Notification
     public function getVendorTxCode()
     {
         return $this->vendorTxCode;
+    }
+
+    public function getVpsTxId()
+    {
+        return $this->vpsTxId;
     }
 
     public function getStatus()

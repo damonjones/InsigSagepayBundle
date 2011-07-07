@@ -66,6 +66,6 @@ class Response
 
     public function getQueryString()
     {
-        return str_replace('&', "\r\n", http_build_query($this->toArray()));
+        return urldecode(http_build_query($this->toArray(), null, "\r\n"));
     }
 }

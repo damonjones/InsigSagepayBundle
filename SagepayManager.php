@@ -4,21 +4,39 @@ namespace Insig\SagepayBundle;
 
 use Insig\SagepayBundle\TransactionRegistration\Request;
 use Insig\SagepayBundle\TransactionRegistration\Response;
+use Insig\SagepayBundle\Notification\Notification;
+use Insig\SagepayBundle\Notification\Response as NotificationResponse;
 
 class SagepayManager
 {
     protected $validator;
     protected $router;
 
-    protected $url;
+    protected $sagepayUrl;
     protected $vpsProtocol;
     protected $vendor;
     protected $notificationUrl;
     protected $redirectUrl;
 
-    protected function convertRouteToAbsoluteUrl($route)
+    protected function isRoute($url)
     {
-        return $this->router->generate(substr($route, 1), array(), true);
+        return '@' === $url[0];
+    }
+
+    protected function convertRouteToAbsoluteUrl($route, $parameters = array())
+    {
+        return $this->router->generate(substr($route, 1), $parameters, true);
+    }
+
+    protected function createNotificationResponse($status, $statusDetail)
+    {
+        if ($this->isRoute($this->redirectUrl)) {
+            $redirectUrl = $this->convertRouteToAbsoluteUrl($this->redirectUrl, array('status' => $status));
+        } else {
+            $redirectUrl = $this->redirectUrl;
+        }
+
+        return new NotificationResponse($status, $redirectUrl, $statusDetail);
     }
 
     // public API ------------------------------------------------------------
@@ -32,9 +50,9 @@ class SagepayManager
         $this->router = $router;
     }
 
-    public function setUrl($url)
+    public function setSagepayUrl($sagepayUrl)
     {
-        $this->url = $url;
+        $this->sagepayUrl = $sagepayUrl;
     }
 
     public function setVpsProtocol($vpsProtocol)
@@ -48,26 +66,22 @@ class SagepayManager
     }
 
     /**
-     * If the notification URL starts with an "@" then treat it as a route
-     * name and generate the absolute URL from the route name
+     * If the notification URL starts with an "@" then it will be treated as a
+     * route name and we will generate the absolute URL from the route name
+     * when needed (with optional parameters)
      */
     public function setNotificationUrl($notificationUrl)
     {
-        if ('@' === $notificationUrl[0]) {
-            $notificationUrl = $this->convertRouteToAbsoluteUrl($notificationUrl);
-        }
         $this->notificationUrl = $notificationUrl;
     }
 
     /**
-     * If the redirect URL starts with an "@" then treat it as a route
-     * name and generate the absolute URL from the route name
+     * If the redirect URL starts with an "@" then it will be treated as a
+     * route name and we will generate the absolute URL from the route name
+     * when needed (with optional parameters)
      */
     public function setRedirectUrl($redirectUrl)
     {
-        if ('@' === $redirectUrl[0]) {
-            $redirectUrl = $this->convertRouteToAbsoluteUrl($redirectUrl);
-        }
         $this->redirectUrl = $redirectUrl;
     }
 
@@ -79,7 +93,12 @@ class SagepayManager
     {
         $req->setVpsProtocol($this->vpsProtocol);
         $req->setVendor($this->vendor);
-        $req->setNotificationUrl($this->notificationUrl);
+
+        if ($this->isRoute($this->notificationUrl)) {
+            $req->setNotificationUrl($this->convertRouteToAbsoluteUrl($this->notificationUrl));
+        } else {
+            $req->setNotificationUrl($this->notificationUrl);
+        }
 
         $errors = $this->validator->validate($req);
         if (count($errors)) {
@@ -109,5 +128,59 @@ class SagepayManager
         }
 
         return new Response($response);
+    }
+
+    public function createNotification($string)
+    {
+        $notification = new Notification($string);
+        // validate the notification
+        $errors = $this->validator->validate($notification);
+        if (count($errors)) {
+            throw new \Exception('Notification failed validation.');
+        }
+
+        return $notification;
+    }
+
+    public function isNotificationAuthentic(Notification $notification, $securityKey)
+    {
+        $computedSignature = strtoupper(
+            md5(
+                $notification->getVpsTxId() .
+                $notification->getVendorTxCode() .
+                $notification->getStatus() .
+                $notification->getTxAuthNo() .
+                $this->vendor .
+                $notification->getAvsCv2() .
+                $securityKey .
+                $notification->getAddressResult() .
+                $notification->getPostCodeResult() .
+                $notification->getCv2Result() .
+                $notification->getGiftAid() .
+                $notification->get3dSecureStatus() .
+                $notification->getCavv() .
+                $notification->getAddressStatus() .
+                $notification->getPayerStatus() .
+                $notification->getCardType() .
+                $notification->getLast4Digits()
+            )
+        );
+
+        return $notification->getVpsSignature() === $computedSignature;
+    }
+
+    public function createOkNotificationResponse($statusDetail = '')
+    {
+        return $this->createNotificationResponse('OK', $statusDetail);
+    }
+
+    public function createInvalidNotificationResponse($statusDetail = '')
+    {
+        return $this->createNotificationResponse('INVALID', $statusDetail);
+    }
+
+    public function createErrorNotificationResponse($statusDetail = '')
+    {
+        return $this->createNotificationResponse('ERROR', $statusDetail);
     }
 }
