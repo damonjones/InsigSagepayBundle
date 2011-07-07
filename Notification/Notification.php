@@ -194,14 +194,16 @@ class Notification
     // public API ------------------------------------------------------------
     public function __construct($data)
     {
-        $arr = parse_str($data);
+        parse_str($data, $arr);
 
         $this->vpsProtocol          = $arr['VPSProtocol'];
         $this->txType               = $arr['TxType'];
         $this->vendorTxCode         = $arr['VendorTxCode'];
         $this->vpsTxId              = $arr['VPSTxId'];
         $this->status               = $arr['Status'];
-        $this->statusDetail         = $arr['StatusDetail'];
+        if (in_array('StatusDetail', $arr)) {
+            $this->statusDetail     = $arr['StatusDetail'];
+        }
         $this->txAuthNo             = $arr['TxAuthNo'];
         $this->avsCv2               = $arr['AVSCV2'];
         $this->addressResult        = $arr['AddressResult'];
@@ -210,8 +212,12 @@ class Notification
         $this->giftAid              = $arr['GiftAid'];
         $this->threeDSecureStatus   = $arr['3DSecureStatus'];
         $this->cavv                 = $arr['CAVV'];
-        $this->addressStatus        = $arr['AddressStatus'];
-        $this->payerStatus          = $arr['PayerStatus'];
+        if (in_array('AddressStatus', $arr)) {
+            $this->addressStatus    = $arr['AddressStatus'];
+        }
+        if (in_array('PayerStatus', $arr)) {
+            $this->payerStatus      = $arr['PayerStatus'];
+        }
         $this->cardType             = $arr['CardType'];
         $this->last4Digits          = $arr['Last4Digits'];
         $this->vpsSignature         = $arr['VPSSignature'];
