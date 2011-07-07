@@ -196,25 +196,25 @@ class Notification
     {
         $arr = parse_str($data);
 
-        $this->vpsProtocol;         = $arr['VPSProtocol'];
-        $this->txType;              = $arr['TxType'];
-        $this->vendorTxCode;        = $arr['VendorTxCode'];
-        $this->vpsTxId;             = $arr['VPSTxId'];
-        $this->status;              = $arr['Status'];
-        $this->statusDetail;        = $arr['StatusDetail'];
-        $this->txAuthNo;            = $arr['TxAuthNo'];
-        $this->avsCv2;              = $arr['AVSCV2'];
-        $this->addressResult;       = $arr['AddressResult'];
-        $this->postCodeResult;      = $arr['PostCodeResult'];
-        $this->cv2Result;           = $arr['CV2Result'];
-        $this->giftAid;             = $arr['GiftAid'];
+        $this->vpsProtocol          = $arr['VPSProtocol'];
+        $this->txType               = $arr['TxType'];
+        $this->vendorTxCode         = $arr['VendorTxCode'];
+        $this->vpsTxId              = $arr['VPSTxId'];
+        $this->status               = $arr['Status'];
+        $this->statusDetail         = $arr['StatusDetail'];
+        $this->txAuthNo             = $arr['TxAuthNo'];
+        $this->avsCv2               = $arr['AVSCV2'];
+        $this->addressResult        = $arr['AddressResult'];
+        $this->postCodeResult       = $arr['PostCodeResult'];
+        $this->cv2Result            = $arr['CV2Result'];
+        $this->giftAid              = $arr['GiftAid'];
         $this->threeDSecureStatus   = $arr['3DSecureStatus'];
-        $this->cavv;                = $arr['CAVV'];
-        $this->addressStatus;       = $arr['AddressStatus'];
-        $this->payerStatus;         = $arr['PayerStatus'];
-        $this->cardType;            = $arr['CardType'];
-        $this->last4Digits;         = $arr['Last4Digits'];
-        $this->vpsSignature;        = $arr['VPSSignature'];
+        $this->cavv                 = $arr['CAVV'];
+        $this->addressStatus        = $arr['AddressStatus'];
+        $this->payerStatus          = $arr['PayerStatus'];
+        $this->cardType             = $arr['CardType'];
+        $this->last4Digits          = $arr['Last4Digits'];
+        $this->vpsSignature         = $arr['VPSSignature'];
     }
 
     public function getVpsProtocol()
