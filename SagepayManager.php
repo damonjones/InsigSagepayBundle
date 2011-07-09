@@ -7,6 +7,10 @@ use Insig\SagepayBundle\TransactionRegistration\Response;
 use Insig\SagepayBundle\Notification\Notification;
 use Insig\SagepayBundle\Notification\Response as NotificationResponse;
 
+use Insig\SagepayBundle\Exception\InvalidRequestException;
+use Insig\SagepayBundle\Exception\InvalidNotificationException;
+use Insig\SagepayBundle\Exception\CurlException;
+
 class SagepayManager
 {
     protected $validator;
@@ -78,20 +82,22 @@ class SagepayManager
      * Sends a cURL POST of the request properties as an http_query
      * Returns a Response object populated from the server's response
      */
-    public function sendTransactionRegistrationRequest(Request $req)
+    public function sendTransactionRegistrationRequest(Request $request)
     {
-        $req->setVpsProtocol($this->vpsProtocol);
-        $req->setVendor($this->vendor);
+        $request->setVpsProtocol($this->vpsProtocol);
+        $request->setVendor($this->vendor);
 
         if ($this->isRoute($this->notificationUrl)) {
-            $req->setNotificationUrl($this->convertRouteToAbsoluteUrl($this->notificationUrl));
+            $request->setNotificationUrl(
+                $this->convertRouteToAbsoluteUrl($this->notificationUrl)
+            );
         } else {
-            $req->setNotificationUrl($this->notificationUrl);
+            $request->setNotificationUrl($this->notificationUrl);
         }
 
-        $errors = $this->validator->validate($req);
+        $errors = $this->validator->validate($request);
         if (count($errors)) {
-            throw new \Exception('Request failed validation.');
+            throw new InvalidRequestException;
         }
 
         $curlSession = curl_init();
@@ -101,7 +107,7 @@ class SagepayManager
                 CURLOPT_URL             =>  $this->url,
                 CURLOPT_HEADER          =>  false,
                 CURLOPT_POST            =>  true,
-                CURLOPT_POSTFIELDS      =>  $req->getQueryString(),
+                CURLOPT_POSTFIELDS      =>  $request->getQueryString(),
                 CURLOPT_RETURNTRANSFER  =>  true,
                 CURLOPT_TIMEOUT         =>  30,
                 CURLOPT_SSL_VERIFYPEER  =>  false,
@@ -113,7 +119,7 @@ class SagepayManager
         curl_close($curlSession);
 
         if (false === $response) {
-            throw new \Exception($error);
+            throw new CurlException($error);
         }
 
         return new Response($response);
@@ -125,7 +131,7 @@ class SagepayManager
         // validate the notification
         $errors = $this->validator->validate($notification);
         if (count($errors)) {
-            throw new \IllegalArgumentException();
+            throw new InvalidNotificationException;
         }
 
         return $notification;
