@@ -3,6 +3,7 @@
 namespace Insig\SagepayBundle\TransactionRegistration;
 
 use Symfony\Component\Validator\Constraints as Assert;
+use Insig\SagepayBundle\Exception\IllegalOperationException;
 
 /**
  * Implemented according to the Sagepay Server Protocol and Integration
@@ -505,7 +506,7 @@ abstract class Request
 
     public function setTxType($value)
     {
-        throw new \Exception('Instantiate the correct transaction request subclass instead.');
+        throw new IllegalOperationException('Instantiate the correct transaction request subclass instead.');
     }
 
     public function setVendor($value)
