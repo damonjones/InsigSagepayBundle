@@ -16,7 +16,7 @@ class SagepayManager
     protected $vpsProtocol;
     protected $vendor;
     protected $notificationUrl;
-    protected $redirectUrl;
+    protected $redirectUrls;
 
     protected function isRoute($url)
     {
@@ -26,17 +26,6 @@ class SagepayManager
     protected function convertRouteToAbsoluteUrl($route, $parameters = array())
     {
         return $this->router->generate(substr($route, 1), $parameters, true);
-    }
-
-    protected function createNotificationResponse($status, $statusDetail)
-    {
-        if ($this->isRoute($this->redirectUrl)) {
-            $redirectUrl = $this->convertRouteToAbsoluteUrl($this->redirectUrl, array('status' => $status));
-        } else {
-            $redirectUrl = $this->redirectUrl;
-        }
-
-        return new NotificationResponse($status, $redirectUrl, $statusDetail);
     }
 
     // public API ------------------------------------------------------------
@@ -80,9 +69,9 @@ class SagepayManager
      * route name and we will generate the absolute URL from the route name
      * when needed (with optional parameters)
      */
-    public function setRedirectUrl($redirectUrl)
+    public function setRedirectUrls(array $redirectUrls)
     {
-        $this->redirectUrl = $redirectUrl;
+        $this->redirectUrls = $redirectUrls;
     }
 
     /**
@@ -136,7 +125,7 @@ class SagepayManager
         // validate the notification
         $errors = $this->validator->validate($notification);
         if (count($errors)) {
-            throw new \Exception('Notification failed validation.');
+            throw new \IllegalArgumentException();
         }
 
         return $notification;
@@ -169,18 +158,13 @@ class SagepayManager
         return $notification->getVpsSignature() === $computedSignature;
     }
 
-    public function createOkNotificationResponse($statusDetail = '')
+    public function createNotificationResponse($status, $statusDetail = null)
     {
-        return $this->createNotificationResponse('OK', $statusDetail);
-    }
+        $redirectUrl = $this->redirectUrls[strtolower($status)];
+        if ($this->isRoute($redirectUrl)) {
+            $redirectUrl = $this->convertRouteToAbsoluteUrl($redirectUrl);
+        }
 
-    public function createInvalidNotificationResponse($statusDetail = '')
-    {
-        return $this->createNotificationResponse('INVALID', $statusDetail);
-    }
-
-    public function createErrorNotificationResponse($statusDetail = '')
-    {
-        return $this->createNotificationResponse('ERROR', $statusDetail);
+        return new NotificationResponse($status, $redirectUrl, $statusDetail);
     }
 }

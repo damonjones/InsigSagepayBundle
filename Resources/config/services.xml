@@ -29,8 +29,8 @@
             <call method="setNotificationUrl">
                 <argument>%insig_sagepay.notification_url%</argument>
             </call>
-            <call method="setRedirectUrl">
-                <argument>%insig_sagepay.redirect_url%</argument>
+            <call method="setRedirectUrls">
+                <argument>%insig_sagepay.redirect_urls%</argument>
             </call>
         </service>
 
