@@ -6,6 +6,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Insig\SagepayBundle\Exception\IllegalOperationException;
 
 /**
+ * Request
+ *
  * Implemented according to the Sagepay Server Protocol and Integration
  * Guideline (Protocol version 2.23)
  *
@@ -13,6 +15,8 @@ use Insig\SagepayBundle\Exception\IllegalOperationException;
  * This is performed via a HTTPS POST request, sent to the initial
  * Sage Pay Payment URL server server-register.vsp. The details should be
  * URL encoded Name=Value fields separated by '&' characters.
+ *
+ * @author Damon Jones
  */
 
 abstract class Request
@@ -504,6 +508,14 @@ abstract class Request
         $this->vpsProtocol = number_format($value, 2);
     }
 
+    /**
+     * setTxType
+     *
+     * @param string $value
+     * @return void
+     * @author Damon Jones
+     * @throws \Insig\SagepayBundle\Exception\IllegalOperationException
+     */
     public function setTxType($value)
     {
         throw new IllegalOperationException('Instantiate the correct transaction request subclass instead.');
@@ -739,15 +751,20 @@ abstract class Request
 
     // output ----------------------------------------------------------------
 
+    /**
+     * toArray
+     *
+     * Returns an associative array of properties
+     * Keys are in the correct Sagepay naming format
+     * Any values which could contain accented characters are converted
+     * from UTF-8 to ISO-8859-1
+     * Empty keys are removed
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public function toArray()
     {
-        /**
-         * Returns an associative array of properties
-         * Keys are in the correct Sagepay naming format
-         * Any values which could contain accented characters are converted
-         * from UTF-8 to ISO-8859-1
-         * Empty keys are removed
-         */
         return array_filter(
             array(
                 'VPSProtocol'           => $this->vpsProtocol,
@@ -788,6 +805,12 @@ abstract class Request
         );
     }
 
+    /**
+     * getQueryString
+     *
+     * @return string
+     * @author Damon Jones
+     */
     public function getQueryString()
     {
         return http_build_query($this->toArray());

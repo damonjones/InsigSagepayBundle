@@ -22,11 +22,26 @@ class SagepayManager
     protected $notificationUrl;
     protected $redirectUrls;
 
+    /**
+     * isRoute
+     *
+     * @param string $url
+     * @return boolean
+     * @author Damon Jones
+     */
     protected function isRoute($url)
     {
         return '@' === $url[0];
     }
 
+    /**
+     * convertRouteToAbsoluteUrl
+     *
+     * @param string $route
+     * @param string $parameters
+     * @return string
+     * @author Damon Jones
+     */
     protected function convertRouteToAbsoluteUrl($route, $parameters = array())
     {
         return $this->router->generate(substr($route, 1), $parameters, true);
@@ -58,29 +73,27 @@ class SagepayManager
         $this->vendor = $vendor;
     }
 
-    /**
-     * If the notification URL starts with an "@" then it will be treated as a
-     * route name and we will generate the absolute URL from the route name
-     * when needed (with optional parameters)
-     */
     public function setNotificationUrl($notificationUrl)
     {
         $this->notificationUrl = $notificationUrl;
     }
 
-    /**
-     * If the redirect URL starts with an "@" then it will be treated as a
-     * route name and we will generate the absolute URL from the route name
-     * when needed (with optional parameters)
-     */
     public function setRedirectUrls(array $redirectUrls)
     {
         $this->redirectUrls = $redirectUrls;
     }
 
     /**
+     * sendTransactionRegistrationRequest
+     *
      * Sends a cURL POST of the request properties as an http_query
      * Returns a Response object populated from the server's response
+     *
+     * @param \Insig\SagepayBundle\TransactionRegistration\Request $request
+     * @throws \Insig\SagepayBundle\InvalidRequestException
+     * @throws \Insig\SagepayBundle\CurlException
+     * @return \Insig\SagepayBundle\TransactionRegistration\Response $response
+     * @author Damon Jones
      */
     public function sendTransactionRegistrationRequest(Request $request)
     {
@@ -125,6 +138,14 @@ class SagepayManager
         return new Response($response);
     }
 
+    /**
+     * createNotification
+     *
+     * @param string $string
+     * @throws \Insig\SagepayBundle\Exception\InvalidNotificationException
+     * @return \Insig\SagepayBundle\Notification\Notification
+     * @author Damon Jones
+     */
     public function createNotification($string)
     {
         $notification = new Notification($string);
@@ -137,6 +158,14 @@ class SagepayManager
         return $notification;
     }
 
+    /**
+     * isNotificationAuthentic
+     *
+     * @param \Insig\SagepayBundle\Notification\Notification $notification
+     * @param string $securityKey
+     * @return boolean
+     * @author Damon Jones
+     */
     public function isNotificationAuthentic(Notification $notification, $securityKey)
     {
         $computedSignature = strtoupper(
@@ -164,6 +193,14 @@ class SagepayManager
         return $notification->getVpsSignature() === $computedSignature;
     }
 
+    /**
+     * createNotificationResponse
+     *
+     * @param string $status
+     * @param string $statusDetail
+     * @return \Insig\SagepayBundle\Notification\Response
+     * @author Damon Jones
+     */
     public function createNotificationResponse($status, $statusDetail = null)
     {
         $redirectUrl = $this->redirectUrls[strtolower($status)];

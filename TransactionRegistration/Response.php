@@ -5,6 +5,8 @@ namespace Insig\SagepayBundle\TransactionRegistration;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
+ * Response
+ *
  * Implemented according to the Sagepay Server Protocol and Integration
  * Guideline (Protocol version 2.23)
  *
@@ -12,6 +14,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  * This is the plain text response part of the POST originated by your
  * servers in A1. Encoding will be as Name=Value pairs separated by carriage
  * return and linefeeds (CRLF).
+ *
+ * @author Damon Jones
  */
 
 class Response
@@ -107,13 +111,19 @@ class Response
     }
 
     // output ----------------------------------------------------------------
+
+    /**
+     * toArray
+     *
+     * Returns an associative array of properties
+     * Keys are in the correct Sagepay naming format
+     * Empty keys are removed
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public function toArray()
     {
-        /**
-         * Returns an associative array of properties
-         * Keys are in the correct Sagepay naming format
-         * Empty keys are removed
-         */
         return array_filter(
             array(
                 'VPSProtocol'   => $this->vpsProtocol,

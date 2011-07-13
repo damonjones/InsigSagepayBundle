@@ -12,6 +12,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  * The Sage Pay server will send notification in the request part of a POST
  * to the Notification URL provided in A1. The request will be URL encoded
  * with Name=Value fields separated by '&' characters.
+ *
+ * @author Damon Jones
  */
 
 class Notification
@@ -295,13 +297,19 @@ class Notification
     }
 
     // output ----------------------------------------------------------------
+
+    /**
+     * toArray
+     *
+     * Returns an associative array of properties
+     * Keys are in the correct Sagepay naming format
+     * Empty keys are removed
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public function toArray()
     {
-        /**
-         * Returns an associative array of properties
-         * Keys are in the correct Sagepay naming format
-         * Empty keys are removed
-         */
         return array_filter(
             array(
                 'VPSProtocol'       => $this->vpsProtocol,

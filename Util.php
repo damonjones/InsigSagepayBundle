@@ -4,6 +4,12 @@ namespace Insig\SagepayBundle;
 
 class Util
 {
+    /**
+     * getUsStateAbbreviations
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public static function getUsStateAbbreviations()
     {
         // 2-Letter US State Abbreviations
@@ -16,6 +22,12 @@ class Util
         );
     }
 
+    /**
+     * getCurrencyCodes
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public static function getCurrencyCodes()
     {
         // ISO 4217 3-Letter Currency Codes

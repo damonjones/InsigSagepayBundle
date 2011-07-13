@@ -12,6 +12,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  * This is the plain text response part of the POST originated by the Server
  * in the step above (A3). Encoding must be as Name=Value fields separated by
  * carriage-return-linefeeds (CRLF).
+ *
+ * @author Damon Jones
  */
 
 class Response
@@ -48,13 +50,18 @@ class Response
 
     // output ----------------------------------------------------------------
 
+    /**
+     * toArray
+     *
+     * Returns an associative array of properties
+     * Keys are in the correct Sagepay naming format
+     * Empty keys are removed
+     *
+     * @return array
+     * @author Damon Jones
+     */
     public function toArray()
     {
-        /**
-         * Returns an associative array of properties
-         * Keys are in the correct Sagepay naming format
-         * Empty keys are removed
-         */
         return array_filter(
             array(
                 'Status'        => $this->status,
@@ -64,6 +71,12 @@ class Response
         );
     }
 
+    /**
+     * getQueryString
+     *
+     * @return string
+     * @author Damon Jones
+     */
     public function getQueryString()
     {
         return urldecode(http_build_query($this->toArray(), null, "\r\n"));
