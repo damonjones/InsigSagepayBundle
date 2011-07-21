@@ -53,7 +53,8 @@ class Notification
     // or "ERROR" ONLY.
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "NOTAUTHED", "ABORT", "REJECTED", "AUTHENTICATED", "REGISTERED", "ERROR"})
+     * @Assert\Choice({"OK", "NOTAUTHED", "ABORT", "REJECTED",
+     * "AUTHENTICATED", "REGISTERED", "ERROR"})
      */
     protected $status;
 
@@ -64,33 +65,36 @@ class Notification
     protected $statusDetail;
 
     // Long Integer.
-    // Only present if the transaction was successfully authorised (Status = "OK")
+    // Only present if the transaction was successfully authorised
+    // (Status = "OK")
     /**
      * @Assert\type("integer")
      */
     protected $txAuthNo;
 
     // Alphabetic. Max 50 characters.
-    // "ALL MATCH", "SECURITY CODE MATCH ONLY", "ADDRESS MATCH ONLY", "NO DATA MATCHES" or "DATA NOT CHECKED" ONLY.
+    // "ALL MATCH", "SECURITY CODE MATCH ONLY", "ADDRESS MATCH ONLY",
+    // "NO DATA MATCHES" or "DATA NOT CHECKED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"ALL MATCH", "SECURITY CODE MATCH ONLY", "ADDRESS MATCH ONLY", "NO DATA MATCHES", "DATA NOT CHECKED"})
+     * @Assert\Choice({"ALL MATCH", "SECURITY CODE MATCH ONLY",
+     * "ADDRESS MATCH ONLY", "NO DATA MATCHES", "DATA NOT CHECKED"})
      */
     protected $avsCv2;
 
     // Alphabetic. Max 20 characters.
-    // "NOT PROVIDED", "NOT CHECKED", "MATCHED" or "NOT MATCHED" ONLY.
+    // "NOTPROVIDED", "NOTCHECKED", "MATCHED" or "NOTMATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOT PROVIDED", "NOT CHECKED", "MATCHED", "NOT MATCHED"})
+     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $addressResult;
 
     // Alphabetic. Max 20 characters.
-    // "NOT PROVIDED", "NOT CHECKED", "MATCHED" or "NOT MATCHED" ONLY.
+    // "NOTPROVIDED", "NOTCHECKED", "MATCHED" or "NOTMATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOT PROVIDED", "NOT CHECKED", "MATCHED", "NOT MATCHED"})
+     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $postCodeResult;
 
@@ -98,7 +102,7 @@ class Notification
     // "NOT PROVIDED", "NOT CHECKED", "MATCHED" or "NOT MATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOT PROVIDED", "NOT CHECKED", "MATCHED", "NOT MATCHED"})
+     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $cv2Result;
 
@@ -110,10 +114,12 @@ class Notification
     protected $giftAid;
 
     // Alphabetic. Max 50 characters.
-    // "OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED", "INCOMPLETE" or "ERROR" ONLY
+    // "OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED", "INCOMPLETE" or
+    // "ERROR" ONLY
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED", "INCOMPLETE", "ERROR"})
+     * @Assert\Choice({"OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED",
+     * "INCOMPLETE", "ERROR"})
      */
     protected $threeDSecureStatus;
 
@@ -141,9 +147,11 @@ class Notification
     protected $payerStatus;
 
     // Alphabetic. Max 15 characters.
-    // "VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC", "JCB", "LASER", "PAYPAL"
+    // "VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC", "JCB", "LASER",
+    // "PAYPAL"
     /**
-     * @Assert\Choice({"VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC", "JCB", "LASER", "PAYPAL"})
+     * @Assert\Choice({"VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC",
+     * "JCB", "LASER", "PAYPAL"})
      */
     protected $cardType;
 
@@ -173,21 +181,25 @@ class Notification
         $this->vendorTxCode         = $arr['VendorTxCode'];
         $this->vpsTxId              = $arr['VPSTxId'];
         $this->status               = $arr['Status'];
-        if (in_array('StatusDetail', $arr)) {
+        if (array_key_exists('StatusDetail', $arr)) {
             $this->statusDetail     = $arr['StatusDetail'];
         }
-        $this->txAuthNo             = (int) $arr['TxAuthNo'];
+        if (array_key_exists('TxAuthNo', $arr)) {
+            $this->txAuthNo             = (int) $arr['TxAuthNo'];
+        }
         $this->avsCv2               = $arr['AVSCV2'];
         $this->addressResult        = $arr['AddressResult'];
         $this->postCodeResult       = $arr['PostCodeResult'];
         $this->cv2Result            = $arr['CV2Result'];
         $this->giftAid              = $arr['GiftAid'];
         $this->threeDSecureStatus   = $arr['3DSecureStatus'];
-        $this->cavv                 = $arr['CAVV'];
-        if (in_array('AddressStatus', $arr)) {
+        if (array_key_exists('CAVV', $arr)) {
+            $this->cavv             = $arr['CAVV'];
+        }
+        if (array_key_exists('AddressStatus', $arr)) {
             $this->addressStatus    = $arr['AddressStatus'];
         }
-        if (in_array('PayerStatus', $arr)) {
+        if (array_key_exists('PayerStatus', $arr)) {
             $this->payerStatus      = $arr['PayerStatus'];
         }
         $this->cardType             = $arr['CardType'];

@@ -88,7 +88,8 @@ abstract class Request
     // Alphabetic. 3 characters. ISO 4217
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util", "getCurrencyCodes"})
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
+     * "getCurrencyCodes"})
      */
     protected $currency;
 
@@ -163,7 +164,8 @@ abstract class Request
 
     // Optional (US customers only). Alphabetic. Max 2 characters.
     /**
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util", "getUsStateAbbreviations"})
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
+     * "getUsStateAbbreviations"})
      */
     protected $billingState;
 
@@ -230,7 +232,8 @@ abstract class Request
 
     // Optional (US customers only). Alphabetic. Max 2 characters.
     /**
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util", "getUsStateAbbreviations"})
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
+     * "getUsStateAbbreviations"})
      */
     protected $deliveryState;
 
@@ -323,7 +326,9 @@ abstract class Request
      */
     public function isComplete()
     {
-        return 0 === count(array_diff(self::$required, array_keys($this->toArray())));
+        return 0 === count(
+            array_diff(self::$required, array_keys($this->toArray()))
+        );
     }
 
     // public API ------------------------------------------------------------
@@ -518,7 +523,9 @@ abstract class Request
      */
     public function setTxType($value)
     {
-        throw new IllegalOperationException('Instantiate the correct transaction request subclass instead.');
+        throw new IllegalOperationException(
+            'Instantiate the correct transaction request subclass instead.'
+        );
     }
 
     public function setVendor($value)
@@ -738,7 +745,8 @@ abstract class Request
         foreach ($items as $item) {
             $lines[] = sprintf(
                 '%s:%d:%.2f:%.2f:%.2f:%.2f',
-                str_replace(':', ' -', $item['name']), // convert any colons in the name
+                // convert any colons in the name
+                str_replace(':', ' -', $item['name']),
                 $item['quantity'],
                 $item['price'],
                 $item['tax'],
@@ -765,44 +773,42 @@ abstract class Request
      */
     public function toArray()
     {
-        return array_filter(
-            array(
-                'VPSProtocol'           => $this->vpsProtocol,
-                'TxType'                => $this->txType,
-                'Vendor'                => $this->vendor,
-                'VendorTxCode'          => $this->vendorTxCode,
-                'Amount'                => number_format($this->amount, 2),
-                'Currency'              => $this->currency,
-                'Description'           => $this->description,
-                'NotificationURL'       => $this->notificationUrl,
-                'BillingSurname'        => utf8_decode($this->billingSurname),
-                'BillingFirstnames'     => utf8_decode($this->billingFirstnames),
-                'BillingAddress1'       => utf8_decode($this->billingAddress1),
-                'BillingAddress2'       => utf8_decode($this->billingAddress2),
-                'BillingCity'           => utf8_decode($this->billingCity),
-                'BillingPostCode'       => $this->billingPostCode,
-                'BillingCountry'        => $this->billingCountry,
-                'BillingState'          => $this->billingState,
-                'BillingPhone'          => $this->billingPhone,
-                'DeliverySurname'       => utf8_decode($this->deliverySurname),
-                'DeliveryFirstnames'    => utf8_decode($this->deliveryFirstnames),
-                'DeliveryAddress1'      => utf8_decode($this->deliveryAddress1),
-                'DeliveryAddress2'      => utf8_decode($this->deliveryAddress2),
-                'DeliveryCity'          => utf8_decode($this->deliveryCity),
-                'DeliveryPostCode'      => $this->deliveryPostCode,
-                'DeliveryCountry'       => $this->deliveryCountry,
-                'DeliveryState'         => $this->deliveryState,
-                'DeliveryPhone'         => $this->deliveryPhone,
-                'CustomerEMail'         => $this->customerEmail,
-                'Basket'                => $this->basket,
-                'AllowGiftAid'          => $this->allowGiftAid,
-                'ApplyAVSCV2'           => $this->applyAvsCv2,
-                'Apply3DSecure'         => $this->apply3dSecure,
-                'Profile'               => $this->profile,
-                'BillingAgreement'      => $this->billingAgreement,
-                'AccountType'           => $this->accountType
-            )
-        );
+        return array_filter(array(
+            'VPSProtocol'           => $this->vpsProtocol,
+            'TxType'                => $this->txType,
+            'Vendor'                => $this->vendor,
+            'VendorTxCode'          => $this->vendorTxCode,
+            'Amount'                => number_format($this->amount, 2),
+            'Currency'              => $this->currency,
+            'Description'           => $this->description,
+            'NotificationURL'       => $this->notificationUrl,
+            'BillingSurname'        => utf8_decode($this->billingSurname),
+            'BillingFirstnames'     => utf8_decode($this->billingFirstnames),
+            'BillingAddress1'       => utf8_decode($this->billingAddress1),
+            'BillingAddress2'       => utf8_decode($this->billingAddress2),
+            'BillingCity'           => utf8_decode($this->billingCity),
+            'BillingPostCode'       => $this->billingPostCode,
+            'BillingCountry'        => $this->billingCountry,
+            'BillingState'          => $this->billingState,
+            'BillingPhone'          => $this->billingPhone,
+            'DeliverySurname'       => utf8_decode($this->deliverySurname),
+            'DeliveryFirstnames'    => utf8_decode($this->deliveryFirstnames),
+            'DeliveryAddress1'      => utf8_decode($this->deliveryAddress1),
+            'DeliveryAddress2'      => utf8_decode($this->deliveryAddress2),
+            'DeliveryCity'          => utf8_decode($this->deliveryCity),
+            'DeliveryPostCode'      => $this->deliveryPostCode,
+            'DeliveryCountry'       => $this->deliveryCountry,
+            'DeliveryState'         => $this->deliveryState,
+            'DeliveryPhone'         => $this->deliveryPhone,
+            'CustomerEMail'         => $this->customerEmail,
+            'Basket'                => $this->basket,
+            'AllowGiftAid'          => $this->allowGiftAid,
+            'ApplyAVSCV2'           => $this->applyAvsCv2,
+            'Apply3DSecure'         => $this->apply3dSecure,
+            'Profile'               => $this->profile,
+            'BillingAgreement'      => $this->billingAgreement,
+            'AccountType'           => $this->accountType
+        ));
     }
 
     /**

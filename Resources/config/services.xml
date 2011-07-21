@@ -11,12 +11,14 @@
     <services>
 
         <service id="insig_sagepay.manager" class="%insig_sagepay.manager.class%">
+
             <call method="setValidator">
                 <argument type="service" id="validator" />
             </call>
             <call method="setRouter">
                 <argument type="service" id="router" />
             </call>
+
             <call method="setSagepayUrl">
                 <argument>%insig_sagepay.sagepay_url%</argument>
             </call>

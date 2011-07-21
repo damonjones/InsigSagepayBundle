@@ -117,7 +117,7 @@ class SagepayManager
         curl_setopt_array(
             $curlSession,
             array(
-                CURLOPT_URL             =>  $this->url,
+                CURLOPT_URL             =>  $this->sagepayUrl,
                 CURLOPT_HEADER          =>  false,
                 CURLOPT_POST            =>  true,
                 CURLOPT_POSTFIELDS      =>  $request->getQueryString(),
@@ -159,16 +159,16 @@ class SagepayManager
     }
 
     /**
-     * isNotificationAuthentic
+     * getComputedSignature
      *
      * @param \Insig\SagepayBundle\Notification\Notification $notification
      * @param string $securityKey
-     * @return boolean
+     * @return string
      * @author Damon Jones
      */
-    public function isNotificationAuthentic(Notification $notification, $securityKey)
+    protected function getComputedSignature(Notification $notification, $securityKey)
     {
-        $computedSignature = strtoupper(
+        return strtoupper(
             md5(
                 $notification->getVpsTxId() .
                 $notification->getVendorTxCode() .
@@ -189,8 +189,19 @@ class SagepayManager
                 $notification->getLast4Digits()
             )
         );
+    }
 
-        return $notification->getVpsSignature() === $computedSignature;
+    /**
+     * isNotificationAuthentic
+     *
+     * @param \Insig\SagepayBundle\Notification\Notification $notification
+     * @param string $securityKey
+     * @return boolean
+     * @author Damon Jones
+     */
+    public function isNotificationAuthentic(Notification $notification, $securityKey)
+    {
+        return $notification->getVpsSignature() === $this->getComputedSignature($notification, $securityKey);
     }
 
     /**
@@ -208,6 +219,16 @@ class SagepayManager
             $redirectUrl = $this->convertRouteToAbsoluteUrl($redirectUrl);
         }
 
-        return new NotificationResponse($status, $redirectUrl, $statusDetail);
+        /**
+         * You should send OK in all circumstances where no errors occur
+         * in validating the Notification POST, so even if Sage Pay send
+         * you a status of ABORT or NOTAUTHED in A3 above, you should
+         * reply with an OK and a RedirectURL that points to a page
+         * informing the customer that the transaction did not complete.
+         */
+
+        $responseStatus = in_array($status, array('INVALID', 'ERROR')) ? $status : 'OK';
+
+        return new NotificationResponse($responseStatus, $redirectUrl, $statusDetail);
     }
 }
