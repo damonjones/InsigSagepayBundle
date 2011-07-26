@@ -30,8 +30,7 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('invalid')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('fail')->isRequired()->cannotBeEmpty()->end()
                 ->end()
-            ->end()
-        ;
+            ->end();
 
         return $treeBuilder;
     }

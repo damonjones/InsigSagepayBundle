@@ -697,19 +697,19 @@ abstract class Request
      */
     public function setBillingAddress(array $address)
     {
-        $this->setBillingFirstnames ($address['firstname']);
-        $this->setBillingSurname    ($address['surname']);
-        $this->setBillingAddress1   ($address['address_1']);
+        $this->setBillingFirstnames($address['firstname']);
+        $this->setBillingSurname($address['surname']);
+        $this->setBillingAddress1($address['address_1']);
         if (isset($address['address_2']) && !empty($address['address_2'])) {
-            $this->setBillingAddress2   ($address['address_2']);
+            $this->setBillingAddress2($address['address_2']);
         }
-        $this->setBillingCity       ($address['city']);
-        $this->setBillingPostcode   ($address['postcode']);
-        $this->setBillingCountry    ($address['country']);
+        $this->setBillingCity($address['city']);
+        $this->setBillingPostcode($address['postcode']);
+        $this->setBillingCountry($address['country']);
         if ('US' === $address['country'] && isset($address['state'])) {
-            $this->setBillingState    ($address['state']);
+            $this->setBillingState($address['state']);
         }
-        $this->setBillingPhone      ($address['phone']);
+        $this->setBillingPhone($address['phone']);
     }
 
     /**
@@ -719,19 +719,19 @@ abstract class Request
      */
     public function setDeliveryAddress(array $address)
     {
-        $this->setDeliveryFirstnames  ($address['firstname']);
-        $this->setDeliverySurname     ($address['surname']);
-        $this->setDeliveryAddress1    ($address['address_1']);
+        $this->setDeliveryFirstnames($address['firstname']);
+        $this->setDeliverySurname($address['surname']);
+        $this->setDeliveryAddress1($address['address_1']);
         if (isset($address['address_2']) && !empty($address['address_2'])) {
-            $this->setDeliveryAddress2    ($address['address_2']);
+            $this->setDeliveryAddress2($address['address_2']);
         }
-        $this->setDeliveryCity        ($address['city']);
-        $this->setDeliveryPostcode    ($address['postcode']);
-        $this->setDeliveryCountry     ($address['country']);
+        $this->setDeliveryCity($address['city']);
+        $this->setDeliveryPostcode($address['postcode']);
+        $this->setDeliveryCountry($address['country']);
         if ('US' === $address['country'] && isset($address['state'])) {
-            $this->setDeliveryState     ($address['state']);
+            $this->setDeliveryState($address['state']);
         }
-        $this->setDeliveryPhone       ($address['phone']);
+        $this->setDeliveryPhone($address['phone']);
     }
 
     /**
