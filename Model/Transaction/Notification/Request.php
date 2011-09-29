@@ -1,8 +1,10 @@
 <?php
 
-namespace Insig\SagepayBundle\Notification;
+namespace Insig\SagepayBundle\Model\Transaction\Notification;
 
 use Symfony\Component\Validator\Constraints as Assert;
+
+use Insig\SagepayBundle\Model\NotificationRequest;
 
 /**
  * Implemented according to the Sagepay Server Protocol and Integration
@@ -16,16 +18,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  * @author Damon Jones
  */
 
-class Notification
+class Request extends NotificationRequest
 {
-    // Numeric. Fixed 4 characters.
-    /**
-     * @Assert\MinLength(4)
-     * @Assert\MaxLength(4)
-     * @Assert\Regex("{^\d\.\d\d$}")
-     */
-    protected $vpsProtocol;
-
     // Alphabetic. Max 20 characters.
     // "PAYMENT", "DEFERRED" or "AUTHENTICATE" ONLY.
     /**
@@ -33,20 +27,6 @@ class Notification
      * @Assert\Choice({"PAYMENT", "DEFERRED", "AUTHENTICATE"})
      */
     protected $txType;
-
-    // Alphanumeric. Max 40 characters.
-    /**
-     * @Assert\NotBlank()
-     * @Assert\MaxLength(40)
-     * @Assert\Regex("{^[\w\d\{\}\.-]+$}")
-     */
-    protected $vendorTxCode;
-
-    // Alphanumeric. 38 characters.
-    /**
-     * @Assert\MaxLength(38)
-     */
-    protected $vpsTxId;
 
     // Alphabetic. Max 20 characters.
     // "OK", "NOTAUTHED", "ABORT", "REJECTED", "AUTHENTICATED", "REGISTERED"
@@ -57,12 +37,6 @@ class Notification
      * "AUTHENTICATED", "REGISTERED", "ERROR"})
      */
     protected $status;
-
-    // Alphanumeric. Max 255 characters.
-    /**
-     * @Assert\MaxLength(255)
-     */
-    protected $statusDetail;
 
     // Long Integer.
     // Only present if the transaction was successfully authorised
@@ -77,7 +51,7 @@ class Notification
     // "NO DATA MATCHES" or "DATA NOT CHECKED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"ALL MATCH", "SECURITY CODE MATCH ONLY",
+     * @Assert\Choice({"", "ALL MATCH", "SECURITY CODE MATCH ONLY",
      * "ADDRESS MATCH ONLY", "NO DATA MATCHES", "DATA NOT CHECKED"})
      */
     protected $avsCv2;
@@ -86,7 +60,7 @@ class Notification
     // "NOTPROVIDED", "NOTCHECKED", "MATCHED" or "NOTMATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
+     * @Assert\Choice({"", "NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $addressResult;
 
@@ -94,7 +68,7 @@ class Notification
     // "NOTPROVIDED", "NOTCHECKED", "MATCHED" or "NOTMATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
+     * @Assert\Choice({"", "NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $postCodeResult;
 
@@ -102,7 +76,7 @@ class Notification
     // "NOT PROVIDED", "NOT CHECKED", "MATCHED" or "NOT MATCHED" ONLY.
     // Not present if the Status is "AUTHENTICATED" or "REGISTERED".
     /**
-     * @Assert\Choice({"NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
+     * @Assert\Choice({"", "NOTPROVIDED", "NOTCHECKED", "MATCHED", "NOTMATCHED"})
      */
     protected $cv2Result;
 
@@ -117,8 +91,7 @@ class Notification
     // "OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED", "INCOMPLETE" or
     // "ERROR" ONLY
     /**
-     * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED",
+     * @Assert\Choice({"", "OK", "NOTCHECKED", "NOTAVAILABLE", "NOTAUTHED",
      * "INCOMPLETE", "ERROR"})
      */
     protected $threeDSecureStatus;
@@ -146,21 +119,6 @@ class Notification
      */
     protected $payerStatus;
 
-    // Alphabetic. Max 15 characters.
-    // "VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC", "JCB", "LASER",
-    // "PAYPAL"
-    /**
-     * @Assert\Choice({"VISA", "MC", "DELTA", "MAESTRO", "UKE", "AMEX", "DC",
-     * "JCB", "LASER", "PAYPAL"})
-     */
-    protected $cardType;
-
-    // Numeric. Max 4 Characters.
-    /**
-     * @Assert\Regex("/^\d{4}$/")
-     */
-    protected $last4Digits;
-
     // Alphanumeric. Max 100 characters.
     // MD5 signature (upper case) of:
     // VPSTxId, VendorTxCode, Status, TxAuthNo, VendorName, AVSCV2,
@@ -174,17 +132,11 @@ class Notification
     // public API ------------------------------------------------------------
     public function __construct($data)
     {
+        parent::__construct($data);
+
         parse_str($data, $arr);
 
-        $this->vpsProtocol          = $arr['VPSProtocol'];
-        $this->txType               = $arr['TxType'];
-        $this->vendorTxCode         = $arr['VendorTxCode'];
-        $this->vpsTxId              = $arr['VPSTxId'];
-        $this->status               = $arr['Status'];
-        if (array_key_exists('StatusDetail', $arr)) {
-            $this->statusDetail     = $arr['StatusDetail'];
-        }
-        if (array_key_exists('TxAuthNo', $arr)) {
+        if (array_key_exists('TxAuthNo', $arr) && !empty($arr['TxAuthNo'])) {
             $this->txAuthNo             = (int) $arr['TxAuthNo'];
         }
         $this->avsCv2               = $arr['AVSCV2'];
@@ -202,39 +154,6 @@ class Notification
         if (array_key_exists('PayerStatus', $arr)) {
             $this->payerStatus      = $arr['PayerStatus'];
         }
-        $this->cardType             = $arr['CardType'];
-        $this->last4Digits          = $arr['Last4Digits'];
-        $this->vpsSignature         = $arr['VPSSignature'];
-    }
-
-    public function getVpsProtocol()
-    {
-        return $this->vpsProtocol;
-    }
-
-    public function getTxType()
-    {
-        return $this->txType;
-    }
-
-    public function getVendorTxCode()
-    {
-        return $this->vendorTxCode;
-    }
-
-    public function getVpsTxId()
-    {
-        return $this->vpsTxId;
-    }
-
-    public function getStatus()
-    {
-        return $this->status;
-    }
-
-    public function getStatusDetail()
-    {
-        return $this->statusDetail;
     }
 
     public function getTxAuthNo()
@@ -293,22 +212,30 @@ class Notification
         return $this->payerStatus;
     }
 
-    public function getCardType()
+    public function getComputedSignature($vendor, $securityKey)
     {
-        return $this->cardType;
+        return strtoupper(
+            md5(
+                $this->getVpsTxId() .
+                $this->getVendorTxCode() .
+                $this->getStatus() .
+                $this->getTxAuthNo() .
+                $vendor .
+                $this->getAvsCv2() .
+                $securityKey .
+                $this->getAddressResult() .
+                $this->getPostCodeResult() .
+                $this->getCv2Result() .
+                $this->getGiftAid() .
+                $this->get3dSecureStatus() .
+                $this->getCavv() .
+                $this->getAddressStatus() .
+                $this->getPayerStatus() .
+                $this->getCardType() .
+                $this->getLast4Digits()
+            )
+        );
     }
-
-    public function getLast4Digits()
-    {
-        return $this->last4Digits;
-    }
-
-    public function getVpsSignature()
-    {
-        return $this->vpsSignature;
-    }
-
-    // output ----------------------------------------------------------------
 
     /**
      * toArray

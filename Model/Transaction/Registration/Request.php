@@ -1,12 +1,13 @@
 <?php
 
-namespace Insig\SagepayBundle\TransactionRegistration;
+namespace Insig\SagepayBundle\Model\Transaction\Registration;
 
 use Symfony\Component\Validator\Constraints as Assert;
-use Insig\SagepayBundle\Exception\IllegalOperationException;
+
+use Insig\SagepayBundle\Model\RegistrationRequest;
 
 /**
- * Request
+ * Transaction Registration Request
  *
  * Implemented according to the Sagepay Server Protocol and Integration
  * Guideline (Protocol version 2.23)
@@ -19,64 +20,8 @@ use Insig\SagepayBundle\Exception\IllegalOperationException;
  * @author Damon Jones
  */
 
-abstract class Request
+abstract class Request extends RegistrationRequest
 {
-    protected static $required = array(
-        'VPSProtocol',
-        'TxType',
-        'Vendor',
-        'VendorTxCode',
-        'Amount',
-        'Currency',
-        'Description',
-        'NotificationURL',
-        'BillingSurname',
-        'BillingFirstnames',
-        'BillingAddress1',
-        'BillingCity',
-        'BillingPostCode',
-        'BillingCountry',
-        'BillingState',
-        'DeliverySurname',
-        'DeliveryFirstnames',
-        'DeliveryAddress1',
-        'DeliveryCity',
-        'DeliveryPostCode',
-        'DeliveryCountry',
-        'DeliveryState'
-    );
-
-    // Numeric. Fixed 4 characters.
-    /**
-     * @Assert\MinLength(4)
-     * @Assert\MaxLength(4)
-     * @Assert\Regex("{^\d\.\d\d$}")
-     */
-    protected $vpsProtocol;
-
-    // Alphabetic. Max 15 characters.
-    // "PAYMENT", "DEFERRED" or "AUTHENTICATE" ONLY.
-    /**
-     * @Assert\NotBlank()
-     * @Assert\Choice({"PAYMENT", "DEFERRED", "AUTHENTICATE"})
-     */
-    protected $txType;
-
-    // Alphanumeric. Max 15 characters.
-    /**
-     * @Assert\MaxLength(15)
-     * @Assert\Regex("{^[\w\d-]+$}")
-     */
-    protected $vendor;
-
-    // Alphanumeric. Max 40 characters.
-    /**
-     * @Assert\NotBlank()
-     * @Assert\MaxLength(40)
-     * @Assert\Regex("{^[\w\d\{\}\.-]+$}")
-     */
-    protected $vendorTxCode;
-
     // Numeric. 0.01 to 100,000.00
     /**
      * @Assert\NotBlank()
@@ -85,14 +30,6 @@ abstract class Request
      */
     protected $amount;
 
-    // Alphabetic. 3 characters. ISO 4217
-    /**
-     * @Assert\NotBlank()
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
-     * "getCurrencyCodes"})
-     */
-    protected $currency;
-
     // Alphanumeric. Max 100 characters.
     /**
      * @Assert\NotBlank()
@@ -100,13 +37,18 @@ abstract class Request
      */
     protected $description;
 
-    // Alphanumeric. Max 255 characters. RFC 1738
+    // Alphanumeric. 38 characters.
     /**
-     * @Assert\NotBlank()
-     * @Assert\MaxLength(255)
-     * @Assert\Url(protocols = {"http", "https"})
+     * @Assert\MaxLength(38)
      */
-    protected $notificationUrl;
+    protected $token;
+
+    // Fixed 0 or 1.
+    /**
+     * @Assert\Min(0)
+     * @Assert\Max(1)
+     */
+    protected $storeToken = 0;
 
     // Alphabetic. Max 20 characters.
     /**
@@ -164,7 +106,7 @@ abstract class Request
 
     // Optional (US customers only). Alphabetic. Max 2 characters.
     /**
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Model\Util",
      * "getUsStateAbbreviations"})
      */
     protected $billingState;
@@ -232,7 +174,7 @@ abstract class Request
 
     // Optional (US customers only). Alphabetic. Max 2 characters.
     /**
-     * @Assert\Choice(callback = {"Insig\SagepayBundle\Util",
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Model\Util",
      * "getUsStateAbbreviations"})
      */
     protected $deliveryState;
@@ -278,12 +220,6 @@ abstract class Request
      */
     protected $apply3dSecure;
 
-    // Optional. Alphabetic. Max 10 characters.
-    /**
-     * @Assert\Choice({"NORMAL", "LOW"})
-     */
-    protected $profile;
-
     // Optional. Flag.
     /**
      * @Assert\Min(0)
@@ -319,53 +255,11 @@ abstract class Request
         return !('US' === $this->deliveryCountry && !$this->deliveryState);
     }
 
-    /**
-     * Checks that all the required fields are set
-     *
-     * @Assert\True
-     */
-    public function isComplete()
-    {
-        return 0 === count(
-            array_diff(self::$required, array_keys($this->toArray()))
-        );
-    }
-
     // public API ------------------------------------------------------------
-
-    public function __construct()
-    {
-        $this->setVendorTxCode(md5(uniqid(rand(), true)));
-    }
-
-    public function getVpsProtocol()
-    {
-        return $this->vpsProtocol;
-    }
-
-    public function getTxType()
-    {
-        return $this->txType;
-    }
-
-    public function getVendor()
-    {
-        return $this->vendor;
-    }
-
-    public function getVendorTxCode()
-    {
-        return $this->vendorTxCode;
-    }
 
     public function getAmount()
     {
         return $this->amount;
-    }
-
-    public function getCurrency()
-    {
-        return $this->currency;
     }
 
     public function getDescription()
@@ -373,9 +267,14 @@ abstract class Request
         return $this->description;
     }
 
-    public function getNotificationURL()
+    public function getToken()
     {
-        return $this->notificationUrl;
+        return $this->token;
+    }
+
+    public function getStoreToken()
+    {
+        return $this->storeToken;
     }
 
     public function getBillingSurname()
@@ -493,11 +392,6 @@ abstract class Request
         return $this->apply3dSecure;
     }
 
-    public function getProfile()
-    {
-        return $this->profile;
-    }
-
     public function getBillingAgreement()
     {
         return $this->billingAgreement;
@@ -508,44 +402,9 @@ abstract class Request
         return $this->accountType;
     }
 
-    public function setVpsProtocol($value)
-    {
-        $this->vpsProtocol = number_format($value, 2);
-    }
-
-    /**
-     * setTxType
-     *
-     * @param string $value
-     * @return void
-     * @author Damon Jones
-     * @throws \Insig\SagepayBundle\Exception\IllegalOperationException
-     */
-    public function setTxType($value)
-    {
-        throw new IllegalOperationException(
-            'Instantiate the correct transaction request subclass instead.'
-        );
-    }
-
-    public function setVendor($value)
-    {
-        $this->vendor = $value;
-    }
-
-    public function setVendorTxCode($value)
-    {
-        $this->vendorTxCode = $value;
-    }
-
     public function setAmount($value)
     {
         $this->amount = (float) $value;
-    }
-
-    public function setCurrency($value)
-    {
-        $this->currency = $value;
     }
 
     public function setDescription($value)
@@ -553,9 +412,14 @@ abstract class Request
         $this->description = $value;
     }
 
-    public function setNotificationURL($value)
+    public function setToken($value)
     {
-        $this->notificationUrl = $value;
+        $this->token = $value;
+    }
+
+    public function setStoreToken($value = 0)
+    {
+        $this->storeToken = (int)(bool) $value;
     }
 
     public function setBillingSurname($value)
@@ -673,11 +537,6 @@ abstract class Request
         $this->apply3dSecure = (int) $value;
     }
 
-    public function setProfile($value)
-    {
-        $this->profile = $value;
-    }
-
     public function setBillingAgreement($value)
     {
         $this->billingAgreement = (int) $value;
@@ -757,7 +616,39 @@ abstract class Request
         $this->setBasket(count($lines) . ':' . implode(':', $lines));
     }
 
-    // output ----------------------------------------------------------------
+    /**
+     * Return an array of required properties
+     *
+     * @return array
+     * @author Damon Jones
+     */
+    public function getRequiredProperties()
+    {
+        return array(
+            'VPSProtocol',
+            'TxType',
+            'Vendor',
+            'VendorTxCode',
+            'Amount',
+            'Currency',
+            'Description',
+            'NotificationURL',
+            'BillingSurname',
+            'BillingFirstnames',
+            'BillingAddress1',
+            'BillingCity',
+            'BillingPostCode',
+            'BillingCountry',
+            'BillingState',
+            'DeliverySurname',
+            'DeliveryFirstnames',
+            'DeliveryAddress1',
+            'DeliveryCity',
+            'DeliveryPostCode',
+            'DeliveryCountry',
+            'DeliveryState'
+        );
+    }
 
     /**
      * toArray
@@ -782,6 +673,8 @@ abstract class Request
             'Currency'              => $this->currency,
             'Description'           => $this->description,
             'NotificationURL'       => $this->notificationUrl,
+            'Token'                 => $this->token,
+            'StoreToken'            => $this->storeToken,
             'BillingSurname'        => utf8_decode($this->billingSurname),
             'BillingFirstnames'     => utf8_decode($this->billingFirstnames),
             'BillingAddress1'       => utf8_decode($this->billingAddress1),
@@ -809,16 +702,5 @@ abstract class Request
             'BillingAgreement'      => $this->billingAgreement,
             'AccountType'           => $this->accountType
         ));
-    }
-
-    /**
-     * getQueryString
-     *
-     * @return string
-     * @author Damon Jones
-     */
-    public function getQueryString()
-    {
-        return http_build_query($this->toArray());
     }
 }

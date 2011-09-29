@@ -1,6 +1,6 @@
 <?php
 
-namespace Insig\SagepayBundle\Notification;
+namespace Insig\SagepayBundle\Model;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -16,12 +16,12 @@ use Symfony\Component\Validator\Constraints as Assert;
  * @author Damon Jones
  */
 
-class Response
+abstract class NotificationResponse
 {
-    // Alphabetic. Max 20 characters. OK, INVALID OR ERROR ONLY.
+    // Alphabetic. Max 20 characters. OK, MALFORMED (Token only), INVALID OR ERROR ONLY.
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "INVALID", "ERROR"})
+     * @Assert\Choice({"OK", "MALFORMED", "INVALID", "ERROR"})
      */
     protected $status;
 

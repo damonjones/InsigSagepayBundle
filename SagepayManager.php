@@ -2,50 +2,42 @@
 
 namespace Insig\SagepayBundle;
 
-use Insig\SagepayBundle\TransactionRegistration\Request;
-use Insig\SagepayBundle\TransactionRegistration\Response;
-use Insig\SagepayBundle\Notification\Notification;
-use Insig\SagepayBundle\Notification\Response as NotificationResponse;
-
+use Insig\SagepayBundle\Exception\CurlException;
 use Insig\SagepayBundle\Exception\InvalidRequestException;
 use Insig\SagepayBundle\Exception\InvalidNotificationException;
-use Insig\SagepayBundle\Exception\CurlException;
+
+use Insig\SagepayBundle\Model\RegistrationRequest;
+use Insig\SagepayBundle\Model\NotificationRequest;
+
+use Insig\SagepayBundle\Model\Transaction\Registration\Request as TransactionRegistrationRequest;
+use Insig\SagepayBundle\Model\Transaction\Registration\Response as TransactionRegistrationResponse;
+
+use Insig\SagepayBundle\Model\Transaction\Notification\Request as TransactionNotificationRequest;
+use Insig\SagepayBundle\Model\Transaction\Notification\Response as TransactionNotificationResponse;
+
+use Insig\SagepayBundle\Model\Token\Registration\Request as TokenRegistrationRequest;
+use Insig\SagepayBundle\Model\Token\Registration\Response as TokenRegistrationResponse;
+
+use Insig\SagepayBundle\Model\Token\Notification\Request as TokenNotificationRequest;
+use Insig\SagepayBundle\Model\Token\Notification\Response as TokenNotificationResponse;
 
 class SagepayManager
 {
     protected $validator;
     protected $router;
 
-    protected $sagepayUrl;
+    // Sagepay URLs
+    protected $gatewayUrl;
+    protected $registerTokenUrl;
+    protected $removeTokenUrl;
+
     protected $vpsProtocol;
     protected $vendor;
-    protected $notificationUrl;
+
+    // Site URLs/route names
+    protected $transactionNotificationUrl;
+    protected $tokenNotificationUrl;
     protected $redirectUrls;
-
-    /**
-     * isRoute
-     *
-     * @param string $url
-     * @return boolean
-     * @author Damon Jones
-     */
-    protected function isRoute($url)
-    {
-        return '@' === $url[0];
-    }
-
-    /**
-     * convertRouteToAbsoluteUrl
-     *
-     * @param string $route
-     * @param string $parameters
-     * @return string
-     * @author Damon Jones
-     */
-    protected function convertRouteToAbsoluteUrl($route, $parameters = array())
-    {
-        return $this->router->generate(substr($route, 1), $parameters, true);
-    }
 
     // public API ------------------------------------------------------------
     public function setValidator($validator)
@@ -58,9 +50,19 @@ class SagepayManager
         $this->router = $router;
     }
 
-    public function setSagepayUrl($sagepayUrl)
+    public function setGatewayUrl($url)
     {
-        $this->sagepayUrl = $sagepayUrl;
+        $this->gatewayUrl = $url;
+    }
+
+    public function setRegisterTokenUrl($url)
+    {
+        $this->registerTokenUrl = $url;
+    }
+
+    public function setRemoveTokenUrl($url)
+    {
+        $this->removeTokenUrl = $url;
     }
 
     public function setVpsProtocol($vpsProtocol)
@@ -73,9 +75,19 @@ class SagepayManager
         $this->vendor = $vendor;
     }
 
-    public function setNotificationUrl($notificationUrl)
+    public function getVendor()
     {
-        $this->notificationUrl = $notificationUrl;
+        return $this->vendor;
+    }
+
+    public function setTransactionNotificationUrl($url)
+    {
+        $this->transactionNotificationUrl = $url;
+    }
+
+    public function setTokenNotificationUrl($url)
+    {
+        $this->tokenNotificationUrl = $url;
     }
 
     public function setRedirectUrls(array $redirectUrls)
@@ -83,30 +95,197 @@ class SagepayManager
         $this->redirectUrls = $redirectUrls;
     }
 
+    // Transaction
+
     /**
-     * sendTransactionRegistrationRequest
+     * Send Transaction Registration Request
      *
      * Sends a cURL POST of the request properties as an http_query
      * Returns a Response object populated from the server's response
      *
-     * @param \Insig\SagepayBundle\TransactionRegistration\Request $request
-     * @throws \Insig\SagepayBundle\InvalidRequestException
-     * @throws \Insig\SagepayBundle\CurlException
-     * @return \Insig\SagepayBundle\TransactionRegistration\Response $response
+     * @param \Insig\SagepayBundle\Model\Transaction\Registration\Request $request
+     * @return \Insig\SagepayBundle\Model\Transaction\Registration\Response $response
      * @author Damon Jones
      */
-    public function sendTransactionRegistrationRequest(Request $request)
+    public function sendTransactionRegistrationRequest(TransactionRegistrationRequest $request)
+    {
+        $response = $this->sendRegistrationRequest(
+            $request,
+            $this->gatewayUrl,
+            $this->transactionNotificationUrl
+        );
+
+        return new TransactionRegistrationResponse($response);
+    }
+
+    /**
+     * Create Transaction Notification
+     *
+     * @param string $data
+     * @throws \Insig\SagepayBundle\Exception\InvalidNotificationException
+     * @return \Insig\SagepayBundle\Model\Transaction\Notification\Request
+     * @author Damon Jones
+     */
+    public function createTransactionNotification($data)
+    {
+        $notification = new TransactionNotificationRequest($data);
+        // validate the notification
+        $errors = $this->validator->validate($notification);
+        if (count($errors)) {
+            throw new InvalidNotificationException;
+        }
+
+        return $notification;
+    }
+
+    /**
+     * Create Transaction Notification Response
+     *
+     * @param string $status
+     * @param string $statusDetail
+     * @return \Insig\SagepayBundle\Model\Transaction\Notification\Response
+     * @author Damon Jones
+     */
+    public function createTransactionNotificationResponse($status, $statusDetail = null)
+    {
+        /**
+         * You should send OK in all circumstances where no errors occur
+         * in validating the Notification POST, so even if Sage Pay send
+         * you a status of ABORT or NOTAUTHED in A3 above, you should
+         * reply with an OK and a RedirectURL that points to a page
+         * informing the customer that the transaction did not complete.
+         */
+
+        return new TransactionNotificationResponse(
+            in_array($status, array('INVALID', 'ERROR')) ? $status : 'OK',
+            $this->convertRouteToAbsoluteUrl($this->redirectUrls[strtolower($status)]),
+            $statusDetail
+        );
+    }
+
+    // Token
+
+    /**
+     * Send Token Registration Request
+     *
+     * Sends a cURL POST of the request properties as an http_query
+     * Returns a Response object populated from the server's response
+     *
+     * @param \Insig\SagepayBundle\Model\Token\Registration\Request $request
+     * @return \Insig\SagepayBundle\Model\Token\Registration\Response $response
+     * @author Damon Jones
+     */
+    public function sendTokenRegistrationRequest(TokenRegistrationRequest $request)
+    {
+        $response = $this->sendRegistrationRequest(
+            $request,
+            $this->registerTokenUrl,
+            $this->tokenNotificationUrl
+        );
+
+        return new TokenRegistrationResponse($response);
+    }
+
+    /**
+     * Create Token Notification
+     *
+     * @param string $string
+     * @throws \Insig\SagepayBundle\Exception\InvalidNotificationException
+     * @return \Insig\SagepayBundle\Model\Token\Notification\Request
+     * @author Damon Jones
+     */
+    public function createTokenNotification($string)
+    {
+        $notification = new TokenNotificationRequest($string);
+        // validate the notification
+        $errors = $this->validator->validate($notification);
+        if (count($errors)) {
+            throw new InvalidNotificationException;
+        }
+
+        return $notification;
+    }
+
+    /**
+     * Create Token Notification Response
+     *
+     * @param string $status
+     * @param string $statusDetail
+     * @return \Insig\SagepayBundle\Model\Token\Notification\Response
+     * @author Damon Jones
+     */
+    public function createTokenNotificationResponse($status, $statusDetail = null)
+    {
+        /**
+        * You should send OK in all circumstances where no errors occur
+        * in validating the Notification POST
+        */
+
+        return new TokenNotificationResponse(
+            in_array($status, array('MALFORMED', 'INVALID')) ? $status : 'OK',
+            $this->convertRouteToAbsoluteUrl(
+                'OK' === $status ? $this->redirectUrls['token_ok'] : $this->redirectUrls['token_error']
+            ),
+            $statusDetail
+        );
+    }
+
+    // Common
+
+    /**
+     * Is Notification Authentic
+     *
+     * @param \Insig\SagepayBundle\Model\NotificationRequest $notification
+     * @param string $securityKey
+     * @return boolean
+     * @author Damon Jones
+     */
+    public function isNotificationAuthentic(NotificationRequest $request, $securityKey)
+    {
+        return
+            $request->getVpsSignature()
+            ===
+            $request->getComputedSignature($this->vendor, $securityKey);
+    }
+
+    // protected methods
+
+    /**
+     * Converts a route name to an absolute URL
+     *
+     * @param string $route Follows the symfony1 convention of an '@' prefix
+     * @param string $parameters URL parameters array
+     * @return string
+     * @author Damon Jones
+     */
+    protected function convertRouteToAbsoluteUrl($route, $parameters = array())
+    {
+        if ('@' === $route[0]) {
+            return $this->router->generate(substr($route, 1), $parameters, true);
+        } else {
+            return $route;
+        }
+    }
+
+    /**
+     * Send Registration Request
+     *
+     * Sends a cURL POST of the request properties as an http_query
+     * Returns a Response object populated from the server's response
+     *
+     * @param \Insig\SagepayBundle\Model\RegistrationRequest $request
+     * @throws \Insig\SagepayBundle\Exception\InvalidRequestException
+     * @throws \Insig\SagepayBundle\Exception\CurlException
+     * @return string $response
+     * @author Damon Jones
+     */
+    protected function sendRegistrationRequest(RegistrationRequest $request, $registrationUrl, $notificationUrl)
     {
         $request->setVpsProtocol($this->vpsProtocol);
         $request->setVendor($this->vendor);
-
-        if ($this->isRoute($this->notificationUrl)) {
-            $request->setNotificationUrl(
-                $this->convertRouteToAbsoluteUrl($this->notificationUrl)
-            );
-        } else {
-            $request->setNotificationUrl($this->notificationUrl);
-        }
+        $request->setNotificationUrl(
+            $this->convertRouteToAbsoluteUrl($notificationUrl)
+        );
 
         $errors = $this->validator->validate($request);
         if (count($errors)) {
@@ -117,7 +296,7 @@ class SagepayManager
         curl_setopt_array(
             $curlSession,
             array(
-                CURLOPT_URL             =>  $this->sagepayUrl,
+                CURLOPT_URL             =>  $registrationUrl,
                 CURLOPT_HEADER          =>  false,
                 CURLOPT_POST            =>  true,
                 CURLOPT_POSTFIELDS      =>  $request->getQueryString(),
@@ -135,100 +314,6 @@ class SagepayManager
             throw new CurlException($error);
         }
 
-        return new Response($response);
-    }
-
-    /**
-     * createNotification
-     *
-     * @param string $string
-     * @throws \Insig\SagepayBundle\Exception\InvalidNotificationException
-     * @return \Insig\SagepayBundle\Notification\Notification
-     * @author Damon Jones
-     */
-    public function createNotification($string)
-    {
-        $notification = new Notification($string);
-        // validate the notification
-        $errors = $this->validator->validate($notification);
-        if (count($errors)) {
-            throw new InvalidNotificationException;
-        }
-
-        return $notification;
-    }
-
-    /**
-     * getComputedSignature
-     *
-     * @param \Insig\SagepayBundle\Notification\Notification $notification
-     * @param string $securityKey
-     * @return string
-     * @author Damon Jones
-     */
-    protected function getComputedSignature(Notification $notification, $securityKey)
-    {
-        return strtoupper(
-            md5(
-                $notification->getVpsTxId() .
-                $notification->getVendorTxCode() .
-                $notification->getStatus() .
-                $notification->getTxAuthNo() .
-                $this->vendor .
-                $notification->getAvsCv2() .
-                $securityKey .
-                $notification->getAddressResult() .
-                $notification->getPostCodeResult() .
-                $notification->getCv2Result() .
-                $notification->getGiftAid() .
-                $notification->get3dSecureStatus() .
-                $notification->getCavv() .
-                $notification->getAddressStatus() .
-                $notification->getPayerStatus() .
-                $notification->getCardType() .
-                $notification->getLast4Digits()
-            )
-        );
-    }
-
-    /**
-     * isNotificationAuthentic
-     *
-     * @param \Insig\SagepayBundle\Notification\Notification $notification
-     * @param string $securityKey
-     * @return boolean
-     * @author Damon Jones
-     */
-    public function isNotificationAuthentic(Notification $notification, $securityKey)
-    {
-        return $notification->getVpsSignature() === $this->getComputedSignature($notification, $securityKey);
-    }
-
-    /**
-     * createNotificationResponse
-     *
-     * @param string $status
-     * @param string $statusDetail
-     * @return \Insig\SagepayBundle\Notification\Response
-     * @author Damon Jones
-     */
-    public function createNotificationResponse($status, $statusDetail = null)
-    {
-        $redirectUrl = $this->redirectUrls[strtolower($status)];
-        if ($this->isRoute($redirectUrl)) {
-            $redirectUrl = $this->convertRouteToAbsoluteUrl($redirectUrl);
-        }
-
-        /**
-         * You should send OK in all circumstances where no errors occur
-         * in validating the Notification POST, so even if Sage Pay send
-         * you a status of ABORT or NOTAUTHED in A3 above, you should
-         * reply with an OK and a RedirectURL that points to a page
-         * informing the customer that the transaction did not complete.
-         */
-
-        $responseStatus = in_array($status, array('INVALID', 'ERROR')) ? $status : 'OK';
-
-        return new NotificationResponse($responseStatus, $redirectUrl, $statusDetail);
+        return $response;
     }
 }

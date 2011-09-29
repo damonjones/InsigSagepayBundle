@@ -19,8 +19,14 @@
                 <argument type="service" id="router" />
             </call>
 
-            <call method="setSagepayUrl">
-                <argument>%insig_sagepay.sagepay_url%</argument>
+            <call method="setGatewayUrl">
+                <argument>%insig_sagepay.gateway_url%</argument>
+            </call>
+            <call method="setRegisterTokenUrl">
+                <argument>%insig_sagepay.register_token_url%</argument>
+            </call>
+            <call method="setRemoveTokenUrl">
+                <argument>%insig_sagepay.remove_token_url%</argument>
             </call>
             <call method="setVpsProtocol">
                 <argument>%insig_sagepay.vps_protocol%</argument>
@@ -28,8 +34,11 @@
             <call method="setVendor">
                 <argument>%insig_sagepay.vendor%</argument>
             </call>
-            <call method="setNotificationUrl">
-                <argument>%insig_sagepay.notification_url%</argument>
+            <call method="setTransactionNotificationUrl">
+                <argument>%insig_sagepay.transaction_notification_url%</argument>
+            </call>
+            <call method="setTokenNotificationUrl">
+                <argument>%insig_sagepay.token_notification_url%</argument>
             </call>
             <call method="setRedirectUrls">
                 <argument>%insig_sagepay.redirect_urls%</argument>

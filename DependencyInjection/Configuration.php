@@ -16,8 +16,11 @@ class Configuration implements ConfigurationInterface
             ->children()
                 ->scalarNode('vps_protocol')->defaultValue('2.23')->end()
                 ->scalarNode('vendor')->isRequired()->cannotBeEmpty()->end()
-                ->scalarNode('sagepay_url')->isRequired()->cannotBeEmpty()->end()
-                ->scalarNode('notification_url')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('gateway_url')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('register_token_url')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('remove_token_url')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('transaction_notification_url')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('token_notification_url')->isRequired()->cannotBeEmpty()->end()
                 ->arrayNode('redirect_urls')
                     ->children()
                         ->scalarNode('ok')->isRequired()->cannotBeEmpty()->end()
@@ -29,6 +32,8 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('error')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('invalid')->isRequired()->cannotBeEmpty()->end()
                         ->scalarNode('fail')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('token_ok')->isRequired()->cannotBeEmpty()->end()
+                        ->scalarNode('token_error')->isRequired()->cannotBeEmpty()->end()
                 ->end()
             ->end();
 

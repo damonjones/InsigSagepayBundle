@@ -1,11 +1,11 @@
 <?php
 
-namespace Insig\SagepayBundle\TransactionRegistration;
+namespace Insig\SagepayBundle\Model;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Response
+ * Registration Response
  *
  * Implemented according to the Sagepay Server Protocol and Integration
  * Guideline (Protocol version 2.23)
@@ -18,7 +18,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * @author Damon Jones
  */
 
-class Response
+abstract class RegistrationResponse
 {
     // Numeric. Fixed 4 characters.
     /**
@@ -29,10 +29,8 @@ class Response
     protected $vpsProtocol;
 
     // Alphabetic. Max 15 characters.
-    // "OK", "MALFORMED", "INVALID" or "ERROR" ONLY.
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "MALFORMED", "INVALID", "ERROR"})
      */
     protected $status;
 
@@ -75,9 +73,13 @@ class Response
         $this->vpsProtocol  = $arr['VPSProtocol'];
         $this->status       = $arr['Status'];
         $this->statusDetail = $arr['StatusDetail'];
-        $this->vpsTxId      = $arr['VPSTxId'];
+        if (array_key_exists('VPSTxId', $arr)) {
+            $this->vpsTxId      = $arr['VPSTxId'];
+        }
         $this->securityKey  = $arr['SecurityKey'];
-        $this->nextUrl      = $arr['NextURL'];
+        if (array_key_exists('NextURL', $arr)) {
+            $this->nextUrl      = $arr['NextURL'];
+        }
     }
 
     public function getVpsProtocol()
