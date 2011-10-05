@@ -23,10 +23,10 @@ use Insig\SagepayBundle\Model\RegistrationResponse;
 class Response extends RegistrationResponse
 {
     // Alphabetic. Max 15 characters.
-    // "OK", "MALFORMED" or "INVALID" ONLY.
+    // "OK", "OK REPEATED", "MALFORMED" or "INVALID" ONLY.
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice({"OK", "MALFORMED", "INVALID"})
+     * @Assert\Choice({"OK", "OK REPEATED", "MALFORMED", "INVALID"})
      */
     protected $status;
 }

@@ -177,6 +177,11 @@ abstract class RegistrationRequest
      */
     abstract public function toArray();
 
+    public function __toString()
+    {
+        return json_encode($this->toArray());
+    }
+
     /**
      * Returns a query string from the object's properties
      *

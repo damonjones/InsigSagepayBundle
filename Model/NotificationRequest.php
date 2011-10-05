@@ -156,4 +156,9 @@ abstract class NotificationRequest
      * @author Damon Jones
      */
     abstract public function toArray();
+    
+    public function __toString()
+    {
+        return json_encode($this->toArray());
+    }
 }

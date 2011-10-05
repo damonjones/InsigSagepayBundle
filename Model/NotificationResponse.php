@@ -71,6 +71,11 @@ abstract class NotificationResponse
         );
     }
 
+    public function __toString()
+    {
+        return json_encode($this->toArray());
+    }
+
     /**
      * getQueryString
      *

@@ -76,7 +76,9 @@ abstract class RegistrationResponse
         if (array_key_exists('VPSTxId', $arr)) {
             $this->vpsTxId      = $arr['VPSTxId'];
         }
-        $this->securityKey  = $arr['SecurityKey'];
+        if (array_key_exists('SecurityKey', $arr)) {
+            $this->securityKey  = $arr['SecurityKey'];
+        }
         if (array_key_exists('NextURL', $arr)) {
             $this->nextUrl      = $arr['NextURL'];
         }
@@ -136,5 +138,10 @@ abstract class RegistrationResponse
                 'NextURL'       => $this->nextUrl
             )
         );
+    }
+
+    public function __toString()
+    {
+        return json_encode($this->toArray());
     }
 }
