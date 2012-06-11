@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Transaction\Notification;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\NotificationResponse;
+use Insig\SagepayBundle\Model\Base\NotificationResponse as BaseNotificationResponse;
 
 /**
  * Implemented according to the Sagepay Server Protocol and Integration
@@ -17,8 +17,7 @@ use Insig\SagepayBundle\Model\NotificationResponse;
  *
  * @author Damon Jones
  */
-
-class Response extends NotificationResponse
+class Response extends BaseNotificationResponse
 {
     // Alphabetic. Max 20 characters. OK, INVALID OR ERROR ONLY.
     /**

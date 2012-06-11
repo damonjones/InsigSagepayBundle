@@ -2,12 +2,20 @@
 
 namespace Insig\SagepayBundle;
 
-use Insig\SagepayBundle\Exception\CurlException;
+use Symfony\Component\Validator\Validator;
+use Symfony\Bundle\FrameworkBundle\Routing\Router;
+
 use Insig\SagepayBundle\Exception\InvalidRequestException;
 use Insig\SagepayBundle\Exception\InvalidNotificationException;
+use Insig\SagepayBundle\Exception\InvalidConfigurationException;
 
-use Insig\SagepayBundle\Model\RegistrationRequest;
-use Insig\SagepayBundle\Model\NotificationRequest;
+use Buzz\Message\Request as BuzzRequest;
+use Buzz\Message\Response as BuzzResponse;
+use Buzz\Client\ClientInterface;
+
+use Insig\SagepayBundle\Model\Base\RegistrationRequest as BaseRegistrationRequest;
+use Insig\SagepayBundle\Model\Base\NotificationRequest as BaseNotificationRequest;
+use Insig\SagepayBundle\Model\Base\NotificationResponse as BaseNotificationResponse;
 
 use Insig\SagepayBundle\Model\Transaction\Registration\Request as TransactionRegistrationRequest;
 use Insig\SagepayBundle\Model\Transaction\Registration\Response as TransactionRegistrationResponse;
@@ -21,101 +29,99 @@ use Insig\SagepayBundle\Model\Token\Registration\Response as TokenRegistrationRe
 use Insig\SagepayBundle\Model\Token\Notification\Request as TokenNotificationRequest;
 use Insig\SagepayBundle\Model\Token\Notification\Response as TokenNotificationResponse;
 
+use Insig\SagepayBundle\Model\Transaction\TransactionInterface;
+
+use Insig\SagepayBundle\Model\Additional\ReleaseRequest;
+use Insig\SagepayBundle\Model\Additional\ReleaseResponse;
+use Insig\SagepayBundle\Model\Additional\AbortRequest;
+use Insig\SagepayBundle\Model\Additional\AbortResponse;
+use Insig\SagepayBundle\Model\Additional\RefundRequest;
+use Insig\SagepayBundle\Model\Additional\RefundResponse;
+use Insig\SagepayBundle\Model\Additional\RepeatRequest;
+use Insig\SagepayBundle\Model\Additional\RepeatResponse;
+use Insig\SagepayBundle\Model\Additional\RepeatDeferredRequest;
+use Insig\SagepayBundle\Model\Additional\RepeatDeferredResponse;
+use Insig\SagepayBundle\Model\Additional\VoidRequest;
+use Insig\SagepayBundle\Model\Additional\VoidResponse;
+use Insig\SagepayBundle\Model\Additional\CancelRequest;
+use Insig\SagepayBundle\Model\Additional\CancelResponse;
+use Insig\SagepayBundle\Model\Additional\AuthoriseRequest;
+use Insig\SagepayBundle\Model\Additional\AuthoriseResponse;
+
 class SagepayManager
 {
-    protected $validator;
-    protected $router;
-
-    // Sagepay URLs
-    protected $gatewayUrl;
-    protected $registerTokenUrl;
-    protected $removeTokenUrl;
-
+    protected $mode;
     protected $vpsProtocol;
     protected $vendor;
 
-    // Site URLs/route names
-    protected $transactionNotificationUrl;
-    protected $tokenNotificationUrl;
+    // Symfony services
+    protected $validator;
+    protected $client;
+
+    // Site callback URLs/route names
     protected $redirectUrls;
 
     // public API ------------------------------------------------------------
-    public function setValidator($validator)
+    public function __construct($vendor, $vpsProtocol, $mode)
+    {
+        if (!in_array($mode, array('simulator', 'test', 'live'))) {
+            throw new InvalidConfigurationException('SagePay mode must be one of "simulator", "test" or "live".');
+        }
+
+        $this->vendor       = $vendor;
+        $this->vpsProtocol  = $vpsProtocol;
+        $this->mode         = $mode;
+    }
+
+    public function setValidator(Validator $validator)
     {
         $this->validator = $validator;
     }
 
-    public function setRouter($router)
+    public function setClient(ClientInterface $client)
     {
-        $this->router = $router;
+        $this->client = $client;
     }
 
-    public function setGatewayUrl($url)
+    /**
+     * Set the callback URLs for each Sagepay outcome
+     * If URLs are not fully-qualified, they are assumed to be route names
+     * so the Symfony routing service will convert them to absolute URLs
+     */
+    public function setRedirectUrls(array $redirectUrls, Router $router)
     {
-        $this->gatewayUrl = $url;
-    }
-
-    public function setRegisterTokenUrl($url)
-    {
-        $this->registerTokenUrl = $url;
-    }
-
-    public function setRemoveTokenUrl($url)
-    {
-        $this->removeTokenUrl = $url;
-    }
-
-    public function setVpsProtocol($vpsProtocol)
-    {
-        $this->vpsProtocol = $vpsProtocol;
-    }
-
-    public function setVendor($vendor)
-    {
-        $this->vendor = $vendor;
-    }
-
-    public function getVendor()
-    {
-        return $this->vendor;
-    }
-
-    public function setTransactionNotificationUrl($url)
-    {
-        $this->transactionNotificationUrl = $url;
-    }
-
-    public function setTokenNotificationUrl($url)
-    {
-        $this->tokenNotificationUrl = $url;
-    }
-
-    public function setRedirectUrls(array $redirectUrls)
-    {
-        $this->redirectUrls = $redirectUrls;
+        $this->redirectUrls = array_map(
+            function($url) use ($router) {
+                return 'http' !== substr($url, 0, 4) ? $router->generate($url, array(), true) : $url;
+            },
+            $redirectUrls
+        );
     }
 
     // Transaction
 
     /**
-     * Send Transaction Registration Request
+     * Register Transaction
      *
-     * Sends a cURL POST of the request properties as an http_query
-     * Returns a Response object populated from the server's response
+     * Sends an http post representation of a Transaction Request (Payment|Authenticate|Deferred) to Sagepay
+     * Returns a TransactionRegistrationResponse object populated from the server's response
      *
      * @param \Insig\SagepayBundle\Model\Transaction\Registration\Request $request
      * @return \Insig\SagepayBundle\Model\Transaction\Registration\Response $response
      * @author Damon Jones
      */
-    public function sendTransactionRegistrationRequest(TransactionRegistrationRequest $request)
+    public function registerTransaction(TransactionRegistrationRequest $request, TransactionInterface &$transaction)
     {
-        $response = $this->sendRegistrationRequest(
-            $request,
-            $this->gatewayUrl,
-            $this->transactionNotificationUrl
-        );
+        $responseArray = $this->sendRequest($request);
+        $response = new TransactionRegistrationResponse($responseArray);
 
-        return new TransactionRegistrationResponse($response);
+        $transaction->setVendorTxCode($request->getVendorTxCode());
+        $transaction->setVpsTxId($response->getVpsTxId());
+        $transaction->setSecurityKey($response->getSecurityKey());
+        $transaction->setAmount($request->getAmount());
+        $transaction->setTxType($request->getTxType());
+
+        return $response;
     }
 
     /**
@@ -128,11 +134,15 @@ class SagepayManager
      */
     public function createTransactionNotification($data)
     {
-        $notification = new TransactionNotificationRequest($data);
-        // validate the notification
-        $errors = $this->validator->validate($notification);
-        if (count($errors)) {
-            throw new InvalidNotificationException;
+        parse_str($data, $arr);
+        $notification = new TransactionNotificationRequest($arr);
+
+        // validate the notification if validation is enabled
+        if ($this->validator) {
+            $errors = $this->validator->validate($notification);
+            if (count($errors)) {
+                throw new InvalidNotificationException;
+            }
         }
 
         return $notification;
@@ -155,10 +165,9 @@ class SagepayManager
          * reply with an OK and a RedirectURL that points to a page
          * informing the customer that the transaction did not complete.
          */
-
         return new TransactionNotificationResponse(
             in_array($status, array('INVALID', 'ERROR')) ? $status : 'OK',
-            $this->convertRouteToAbsoluteUrl($this->redirectUrls[strtolower($status)]),
+            $this->redirectUrls[strtolower($status)],
             $statusDetail
         );
     }
@@ -166,41 +175,41 @@ class SagepayManager
     // Token
 
     /**
-     * Send Token Registration Request
+     * Register Token
      *
-     * Sends a cURL POST of the request properties as an http_query
-     * Returns a Response object populated from the server's response
+     * Sends an http post representation of a Token Registration Request to Sagepay
+     * Returns a TokenRegistrationResponse object populated from the server's response
      *
      * @param \Insig\SagepayBundle\Model\Token\Registration\Request $request
      * @return \Insig\SagepayBundle\Model\Token\Registration\Response $response
      * @author Damon Jones
      */
-    public function sendTokenRegistrationRequest(TokenRegistrationRequest $request)
+    public function registerToken(TokenRegistrationRequest $request)
     {
-        $response = $this->sendRegistrationRequest(
-            $request,
-            $this->registerTokenUrl,
-            $this->tokenNotificationUrl
-        );
+        $responseArray = $this->sendRequest($request);
 
-        return new TokenRegistrationResponse($response);
+        return new TokenRegistrationResponse($responseArray);
     }
 
     /**
      * Create Token Notification
      *
-     * @param string $string
+     * @param string $data
      * @throws \Insig\SagepayBundle\Exception\InvalidNotificationException
      * @return \Insig\SagepayBundle\Model\Token\Notification\Request
      * @author Damon Jones
      */
-    public function createTokenNotification($string)
+    public function createTokenNotification($data)
     {
-        $notification = new TokenNotificationRequest($string);
-        // validate the notification
-        $errors = $this->validator->validate($notification);
-        if (count($errors)) {
-            throw new InvalidNotificationException;
+        parse_str($data, $arr);
+        $notification = new TokenNotificationRequest($arr);
+
+        // validate the notification if validation is enabled
+        if ($this->validator) {
+            $errors = $this->validator->validate($notification);
+            if (count($errors)) {
+                throw new InvalidNotificationException;
+            }
         }
 
         return $notification;
@@ -220,17 +229,112 @@ class SagepayManager
         * You should send OK in all circumstances where no errors occur
         * in validating the Notification POST
         */
-
         return new TokenNotificationResponse(
             in_array($status, array('MALFORMED', 'INVALID')) ? $status : 'OK',
-            $this->convertRouteToAbsoluteUrl(
-                'OK' === $status ? $this->redirectUrls['token_ok'] : $this->redirectUrls['token_error']
-            ),
+            $this->redirectUrls[strtolower($status)],
             $statusDetail
         );
     }
 
-    // Common
+    // Additional Transaction Protocols
+
+    public function performRelease(TransactionInterface $transaction, $amount = null)
+    {
+        $request = new ReleaseRequest($transaction);
+        if ($amount) {
+            $request->setReleaseAmount($amount);
+        }
+        $responseArray = $this->sendRequest($request);
+
+        return new ReleaseResponse($responseArray);
+    }
+
+    public function performAbort(TransactionInterface $transaction)
+    {
+        $request = new AbortRequest($transaction);
+        $responseArray = $this->sendRequest($request);
+
+        return new AbortResponse($responseArray);
+    }
+
+    public function performRefund(TransactionInterface $transaction, $amount, $currency, $description, TransactionInterface &$relatedTransaction)
+    {
+        $request = new RefundRequest($transaction, $amount, $currency, $description);
+        $responseArray = $this->sendRequest($request);
+        $response = new RefundResponse($responseArray);
+
+        $relatedTransaction->setVendorTxCode($request->getVendorTxCode());
+        $relatedTransaction->setVpsTxId($response->getVpsTxId());
+        $relatedTransaction->setTxAuthNo($response->getTxAuthNo());
+        $relatedTransaction->setTxType($request->getTxType());
+        $relatedTransaction->setAmount($request->getAmount());
+
+        return $response;
+    }
+
+    public function performRepeat(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
+    {
+        $request = new RepeatRequest($transaction, $amount, $currency, $description, $cv2);
+        $responseArray = $this->sendRequest($request);
+        $response = new RepeatResponse($responseArray);
+
+        $relatedTransaction->setVendorTxCode($request->getVendorTxCode());
+        $relatedTransaction->setVpsTxId($response->getVpsTxId());
+        $relatedTransaction->setTxAuthNo($response->getTxAuthNo());
+        $relatedTransaction->setSecurityKey($response->getSecurityKey());
+        $relatedTransaction->setTxType($request->getTxType());
+        $relatedTransaction->setAmount($request->getAmount());
+
+        return $response;
+    }
+
+    public function performRepeatDeferred(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
+    {
+        $request = new RepeatDeferredRequest($transaction, $amount, $currency, $description, $cv2);
+        $responseArray = $this->sendRequest($request);
+        $response = new RepeatResponse($responseArray);
+
+        $relatedTransaction->setVendorTxCode($request->getVendorTxCode());
+        $relatedTransaction->setVpsTxId($response->getVpsTxId());
+        $relatedTransaction->setTxAuthNo($response->getTxAuthNo());
+        $relatedTransaction->setSecurityKey($response->getSecurityKey());
+        $relatedTransaction->setTxType($request->getTxType());
+        $relatedTransaction->setAmount($request->getAmount());
+
+        return $response;
+    }
+
+    public function performVoid(TransactionInterface $transaction)
+    {
+        $request = new VoidRequest($transaction);
+        $response = $this->sendRequest($request);
+
+        return new VoidResponse($response);
+    }
+
+    public function performCancel(TransactionInterface $transaction)
+    {
+        $request = new CancelRequest($transaction);
+        $response = $this->sendRequest($request);
+
+        return new CancelResponse($response);
+    }
+
+    public function performAuthorise(TransactionInterface $transaction, $amount, $description, $applyAvsCv2, TransactionInterface &$relatedTransaction)
+    {
+        $request = new AuthoriseRequest($transaction, $amount, $description, $applyAvsCv2);
+        $responseArray = $this->sendRequest($request);
+        $response = new AuthoriseResponse($responseArray);
+
+        $relatedTransaction->setVendorTxCode($request->getVendorTxCode());
+        $relatedTransaction->setVpsTxId($response->getVpsTxId());
+        $relatedTransaction->setTxAuthNo($response->getTxAuthNo());
+        $relatedTransaction->setSecurityKey($response->getSecurityKey());
+        $relatedTransaction->setTxType($request->getTxType());
+        $relatedTransaction->setAmount($request->getAmount());
+
+        return $response;
+    }
 
     /**
      * Is Notification Authentic
@@ -240,7 +344,7 @@ class SagepayManager
      * @return boolean
      * @author Damon Jones
      */
-    public function isNotificationAuthentic(NotificationRequest $request, $securityKey)
+    public function isNotificationAuthentic(BaseNotificationRequest $request, $securityKey)
     {
         return
             $request->getVpsSignature()
@@ -248,72 +352,86 @@ class SagepayManager
             $request->getComputedSignature($this->vendor, $securityKey);
     }
 
-    // protected methods
-
     /**
-     * Converts a route name to an absolute URL
+     * Format Notification Response
      *
-     * @param string $route Follows the symfony1 convention of an '@' prefix
-     * @param string $parameters URL parameters array
+     * Returns a string representation of the notification response
+     * in the format required to send to Sagepay (name=value pairs separated by "\r\n")
+     * @param \Insig\SagepayBundle\Model\NotificationResponse $response
      * @return string
      * @author Damon Jones
      */
-    protected function convertRouteToAbsoluteUrl($route, $parameters = array())
+    public function formatNotificationResponse(BaseNotificationResponse $response)
     {
-        if ('@' === $route[0]) {
-            return $this->router->generate(substr($route, 1), $parameters, true);
-        } else {
-            return $route;
-        }
+        return urldecode(http_build_query($response->toArray(), null, "\r\n"));
     }
 
+    // Protected/Private methods
+
     /**
-     * Send Registration Request
+     * Send Request
      *
-     * Sends a cURL POST of the request properties as an http_query
-     * Returns a Response object populated from the server's response
+     * Sends a cURL POST of the request properties
+     * Returns the server's response string
      *
      * @param \Insig\SagepayBundle\Model\RegistrationRequest $request
      * @throws \Insig\SagepayBundle\Exception\InvalidRequestException
-     * @throws \Insig\SagepayBundle\Exception\CurlException
-     * @return string $response
+     * @return array
      * @author Damon Jones
      */
-    protected function sendRegistrationRequest(RegistrationRequest $request, $registrationUrl, $notificationUrl)
+    protected function sendRequest(BaseRegistrationRequest $request)
     {
         $request->setVpsProtocol($this->vpsProtocol);
         $request->setVendor($this->vendor);
-        $request->setNotificationUrl(
-            $this->convertRouteToAbsoluteUrl($notificationUrl)
-        );
 
-        $errors = $this->validator->validate($request);
-        if (count($errors)) {
-            throw new InvalidRequestException;
+        // validate the request if validation is enabled
+        if ($this->validator) {
+            $errors = $this->validator->validate($request);
+            if (count($errors)) {
+                var_dump($errors);
+                throw new InvalidRequestException;
+            }
         }
 
-        $curlSession = curl_init();
-        curl_setopt_array(
-            $curlSession,
-            array(
-                CURLOPT_URL             =>  $registrationUrl,
-                CURLOPT_HEADER          =>  false,
-                CURLOPT_POST            =>  true,
-                CURLOPT_POSTFIELDS      =>  $request->getQueryString(),
-                CURLOPT_RETURNTRANSFER  =>  true,
-                CURLOPT_TIMEOUT         =>  30,
-                CURLOPT_SSL_VERIFYPEER  =>  false,
-                CURLOPT_SSL_VERIFYHOST  =>  true
-            )
-        );
-        $response = curl_exec($curlSession);
-        $error = curl_error($curlSession);
-        curl_close($curlSession);
+        $service = strtolower($request->getTxType());
 
-        if (false === $response) {
-            throw new CurlException($error);
+        if (in_array($service, array('payment', 'authenticate', 'deferred'))) {
+            $service = 'simulator' === $this->mode ? 'Register' : 'vspserver-register';
         }
 
-        return $response;
+        if ('repeatdeferred' === $service) {
+            $service = 'repeat';
+        }
+
+        switch ($this->mode) {
+            case 'simulator':
+                $host = 'https://test.sagepay.com';
+                $resource = sprintf('/Simulator/VSPServerGateway.asp?Service=Vendor%sTx', $service);
+                break;
+            case 'test':
+                $host = 'https://test.sagepay.com';
+                $resource = sprintf('/gateway/service/%s.vsp', $service);
+                break;
+            case 'live':
+                $host = 'https://live.sagepay.com';
+                $resource = sprintf('/gateway/service/%s.vsp', $service);
+                break;
+        }
+
+        $buzzRequest = new BuzzRequest('POST', $resource, $host);
+        $buzzRequest->setContent(http_build_query($request->toArray()));
+        $buzzResponse = new BuzzResponse();
+
+        $this->client->send($buzzRequest, $buzzResponse);
+
+        $responseString = $buzzResponse->getContent();
+
+        /** Sagepay returns a response string consisting of key/value pairs
+         * Each key value pair is separated by an equals sign (key=value)
+         * Pairs are separated by CRLF
+         */
+        parse_str(str_replace("\r\n", '&', $responseString), $responseArray);
+
+        return $responseArray;
     }
 }

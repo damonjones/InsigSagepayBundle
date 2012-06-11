@@ -6,42 +6,29 @@
 
     <parameters>
         <parameter key="insig_sagepay.manager.class">Insig\SagepayBundle\SagepayManager</parameter>
+        <parameter key="insig_sagepay.client.class">Buzz\Client\Curl</parameter>
     </parameters>
 
     <services>
 
+        <service id="insig_sagepay.client" class="%insig_sagepay.client.class%" />
+
         <service id="insig_sagepay.manager" class="%insig_sagepay.manager.class%">
+            <argument>%insig_sagepay.vendor%</argument>
+            <argument>%insig_sagepay.vps_protocol%</argument>
+            <argument>%insig_sagepay.mode%</argument>
 
             <call method="setValidator">
                 <argument type="service" id="validator" />
             </call>
-            <call method="setRouter">
-                <argument type="service" id="router" />
+
+            <call method="setClient">
+                <argument type="service" id="insig_sagepay.client" />
             </call>
 
-            <call method="setGatewayUrl">
-                <argument>%insig_sagepay.gateway_url%</argument>
-            </call>
-            <call method="setRegisterTokenUrl">
-                <argument>%insig_sagepay.register_token_url%</argument>
-            </call>
-            <call method="setRemoveTokenUrl">
-                <argument>%insig_sagepay.remove_token_url%</argument>
-            </call>
-            <call method="setVpsProtocol">
-                <argument>%insig_sagepay.vps_protocol%</argument>
-            </call>
-            <call method="setVendor">
-                <argument>%insig_sagepay.vendor%</argument>
-            </call>
-            <call method="setTransactionNotificationUrl">
-                <argument>%insig_sagepay.transaction_notification_url%</argument>
-            </call>
-            <call method="setTokenNotificationUrl">
-                <argument>%insig_sagepay.token_notification_url%</argument>
-            </call>
             <call method="setRedirectUrls">
                 <argument>%insig_sagepay.redirect_urls%</argument>
+                <argument type="service" id="router" />
             </call>
         </service>
 

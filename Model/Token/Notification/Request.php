@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Token\Notification;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\NotificationRequest;
+use Insig\SagepayBundle\Model\Base\NotificationRequest as BaseNotificationRequest;
 
 /**
  * Implemented according to the Token System Protocol and Integration
@@ -17,8 +17,7 @@ use Insig\SagepayBundle\Model\NotificationRequest;
  *
  * @author Damon Jones
  */
-
-class Request extends NotificationRequest
+class Request extends BaseNotificationRequest
 {
     // Alphabetic. Max 15 characters.
     // "TOKEN" ONLY.
@@ -50,11 +49,9 @@ class Request extends NotificationRequest
     protected $expiryDate;
 
     // public API ------------------------------------------------------------
-    public function __construct($data)
+    public function __construct($arr)
     {
-        parent::__construct($data);
-
-        parse_str($data, $arr);
+        parent::__construct($arr);
 
         $this->token                = $arr['Token'];
         $this->expiryDate           = $arr['ExpiryDate'];

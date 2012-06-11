@@ -9,7 +9,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  *
  * @author Damon Jones
  */
-
 class DeferredRequest extends Request
 {
     // Alphabetic. Max 15 characters.

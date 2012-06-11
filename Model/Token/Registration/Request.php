@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Token\Registration;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\RegistrationRequest;
+use Insig\SagepayBundle\Model\Base\RegistrationRequest as BaseRegistrationRequest;
 
 /**
  * Token Registration Request
@@ -20,8 +20,7 @@ use Insig\SagepayBundle\Model\RegistrationRequest;
  *
  * @author Damon Jones
  */
-
-class Request extends RegistrationRequest
+class Request extends BaseRegistrationRequest
 {
     // Alphabetic. Max 15 characters.
     // "TOKEN" ONLY.
@@ -30,6 +29,64 @@ class Request extends RegistrationRequest
      * @Assert\Choice({"TOKEN"})
      */
     protected $txType = 'TOKEN';
+
+    // Alphabetic. 3 characters. ISO 4217
+    /**
+     * @Assert\NotBlank()
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Model\Util",
+     * "getCurrencyCodes"})
+     */
+    protected $currency;
+
+    // Alphanumeric. Max 255 characters. RFC 1738
+    /**
+     * @Assert\NotBlank()
+     * @Assert\MaxLength(255)
+     * @Assert\Url(protocols = {"http", "https"})
+     */
+    protected $notificationUrl;
+
+    // Optional. Alphabetic. Max 10 characters.
+    /**
+     * @Assert\Choice({"NORMAL", "LOW"})
+     */
+    protected $profile;
+
+    public function getCurrency()
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency($value)
+    {
+        $this->currency = $value;
+
+        return $this;
+    }
+
+    public function getNotificationURL()
+    {
+        return $this->notificationUrl;
+    }
+
+    public function setNotificationURL($value)
+    {
+        $this->notificationUrl = $value;
+
+        return $this;
+    }
+
+    public function getProfile()
+    {
+        return $this->profile;
+    }
+
+    public function setProfile($value)
+    {
+        $this->profile = $value;
+
+        return $this;
+    }
 
     /**
      * Return an array of required properties

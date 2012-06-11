@@ -9,7 +9,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  *
  * @author Damon Jones
  */
-
 class PaymentRequest extends Request
 {
     // Alphabetic. Max 15 characters.

@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Transaction\Registration;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\RegistrationResponse;
+use Insig\SagepayBundle\Model\Base\RegistrationResponse as BaseRegistrationResponse;
 
 /**
  * Transaction Registration Response
@@ -19,8 +19,7 @@ use Insig\SagepayBundle\Model\RegistrationResponse;
  *
  * @author Damon Jones
  */
-
-class Response extends RegistrationResponse
+class Response extends BaseRegistrationResponse
 {
     // Alphabetic. Max 15 characters.
     // "OK", "OK REPEATED", "MALFORMED", "INVALID" or "ERROR" ONLY.
@@ -29,4 +28,78 @@ class Response extends RegistrationResponse
      * @Assert\Choice({"OK", "OK REPEATED", "MALFORMED", "INVALID", "ERROR"})
      */
     protected $status;
+
+    // Alphanumeric. 38 characters.
+    /**
+     * @Assert\MaxLength(38)
+     */
+    protected $vpsTxId;
+
+    // Alphanumeric. Max 10 characters.
+    /**
+     * @Assert\MaxLength(10)
+     */
+    protected $securityKey;
+
+    // Alphanumeric. Fully Qualified URL. Max 255 characters.
+    /**
+     * @Assert\Url
+     * @Assert\MaxLength(255)
+     */
+    protected $nextUrl;
+
+    // public API ------------------------------------------------------------
+
+    public function __construct(array $arr)
+    {
+        parent::__construct($arr);
+
+        if ('OK' === $this->status || 'OK REPEATED' === $this->status) {
+            $this->vpsTxId = $arr['VPSTxId'];
+        }
+
+        if ('OK' === $this->status) {
+            $this->securityKey = $arr['SecurityKey'];
+            $this->nextUrl     = $arr['NextURL'];
+        }
+    }
+
+    public function getVpsTxId()
+    {
+        return $this->vpsTxId;
+    }
+
+    public function getSecurityKey()
+    {
+        return $this->securityKey;
+    }
+
+    public function getNextUrl()
+    {
+        return $this->nextUrl;
+    }
+
+    /**
+     * toArray
+     *
+     * Returns an associative array of properties
+     * Keys are in the correct Sagepay naming format
+     * Empty keys are removed
+     *
+     * @return array
+     * @author Damon Jones
+     */
+    public function toArray()
+    {
+        return array_filter(
+            array(
+                'VPSProtocol'   => $this->vpsProtocol,
+                'Status'        => $this->status,
+                'StatusDetail'  => $this->statusDetail,
+                'VPSTxId'       => $this->vpsTxId,
+                'SecurityKey'   => $this->securityKey,
+                'NextURL'       => $this->nextUrl
+            )
+        );
+    }
 }

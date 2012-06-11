@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Transaction\Registration;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\RegistrationRequest;
+use Insig\SagepayBundle\Model\Base\RegistrationRequest as BaseRegistrationRequest;
 
 /**
  * Transaction Registration Request
@@ -19,8 +19,7 @@ use Insig\SagepayBundle\Model\RegistrationRequest;
  *
  * @author Damon Jones
  */
-
-abstract class Request extends RegistrationRequest
+abstract class Request extends BaseRegistrationRequest
 {
     // Numeric. 0.01 to 100,000.00
     /**
@@ -29,6 +28,14 @@ abstract class Request extends RegistrationRequest
      * @Assert\Max(100000.0)
      */
     protected $amount;
+
+    // Alphabetic. 3 characters. ISO 4217
+    /**
+     * @Assert\NotBlank()
+     * @Assert\Choice(callback = {"Insig\SagepayBundle\Model\Util",
+     * "getCurrencyCodes"})
+     */
+    protected $currency;
 
     // Alphanumeric. Max 100 characters.
     /**
@@ -49,6 +56,14 @@ abstract class Request extends RegistrationRequest
      * @Assert\Max(1)
      */
     protected $storeToken = 0;
+
+    // Alphanumeric. Max 255 characters. RFC 1738
+    /**
+     * @Assert\NotBlank()
+     * @Assert\MaxLength(255)
+     * @Assert\Url(protocols = {"http", "https"})
+     */
+    protected $notificationUrl;
 
     // Alphabetic. Max 20 characters.
     /**
@@ -220,6 +235,12 @@ abstract class Request extends RegistrationRequest
      */
     protected $apply3dSecure;
 
+    // Optional. Alphabetic. Max 10 characters.
+    /**
+     * @Assert\Choice({"NORMAL", "LOW"})
+     */
+    protected $profile;
+
     // Optional. Flag.
     /**
      * @Assert\Min(0)
@@ -262,9 +283,35 @@ abstract class Request extends RegistrationRequest
         return $this->amount;
     }
 
+    public function setAmount($value)
+    {
+        $this->amount = (float) $value;
+
+        return $this;
+    }
+
+    public function getCurrency()
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency($value)
+    {
+        $this->currency = $value;
+
+        return $this;
+    }
+
     public function getDescription()
     {
         return $this->description;
+    }
+
+    public function setDescription($value)
+    {
+        $this->description = $value;
+
+        return $this;
     }
 
     public function getToken()
@@ -272,9 +319,35 @@ abstract class Request extends RegistrationRequest
         return $this->token;
     }
 
+    public function setToken($value)
+    {
+        $this->token = $value;
+
+        return $this;
+    }
+
     public function getStoreToken()
     {
         return $this->storeToken;
+    }
+
+    public function setStoreToken($value = 0)
+    {
+        $this->storeToken = (int)(bool) $value;
+
+        return $this;
+    }
+
+    public function getNotificationURL()
+    {
+        return $this->notificationUrl;
+    }
+
+    public function setNotificationURL($value)
+    {
+        $this->notificationUrl = $value;
+
+        return $this;
     }
 
     public function getBillingSurname()
@@ -282,9 +355,23 @@ abstract class Request extends RegistrationRequest
         return $this->billingSurname;
     }
 
+    public function setBillingSurname($value)
+    {
+        $this->billingSurname = $value;
+
+        return $this;
+    }
+
     public function getBillingFirstnames()
     {
         return $this->billingFirstnames;
+    }
+
+    public function setBillingFirstnames($value)
+    {
+        $this->billingFirstnames = $value;
+
+        return $this;
     }
 
     public function getBillingAddress1()
@@ -292,9 +379,23 @@ abstract class Request extends RegistrationRequest
         return $this->billingAddress1;
     }
 
+    public function setBillingAddress1($value)
+    {
+        $this->billingAddress1 = $value;
+
+        return $this;
+    }
+
     public function getBillingAddress2()
     {
         return $this->billingAddress2;
+    }
+
+    public function setBillingAddress2($value)
+    {
+        $this->billingAddress2 = $value;
+
+        return $this;
     }
 
     public function getBillingCity()
@@ -302,9 +403,23 @@ abstract class Request extends RegistrationRequest
         return $this->billingCity;
     }
 
+    public function setBillingCity($value)
+    {
+        $this->billingCity = $value;
+
+        return $this;
+    }
+
     public function getBillingPostCode()
     {
         return $this->billingPostCode;
+    }
+
+    public function setBillingPostCode($value)
+    {
+        $this->billingPostCode = $value ?: '-';
+
+        return $this;
     }
 
     public function getBillingCountry()
@@ -312,9 +427,23 @@ abstract class Request extends RegistrationRequest
         return $this->billingCountry;
     }
 
+    public function setBillingCountry($value)
+    {
+        $this->billingCountry = $value;
+
+        return $this;
+    }
+
     public function getBillingState()
     {
         return $this->billingState;
+    }
+
+    public function setBillingState($value)
+    {
+        $this->billingState = $value;
+
+        return $this;
     }
 
     public function getBillingPhone()
@@ -322,9 +451,23 @@ abstract class Request extends RegistrationRequest
         return $this->billingPhone;
     }
 
+    public function setBillingPhone($value)
+    {
+        $this->billingPhone = $value;
+
+        return $this;
+    }
+
     public function getDeliverySurname()
     {
         return $this->deliverySurname;
+    }
+
+    public function setDeliverySurname($value)
+    {
+        $this->deliverySurname = $value;
+
+        return $this;
     }
 
     public function getDeliveryFirstnames()
@@ -332,9 +475,23 @@ abstract class Request extends RegistrationRequest
         return $this->deliveryFirstnames;
     }
 
+    public function setDeliveryFirstnames($value)
+    {
+        $this->deliveryFirstnames = $value;
+
+        return $this;
+    }
+
     public function getDeliveryAddress1()
     {
         return $this->deliveryAddress1;
+    }
+
+    public function setDeliveryAddress1($value)
+    {
+        $this->deliveryAddress1 = $value;
+
+        return $this;
     }
 
     public function getDeliveryAddress2()
@@ -342,9 +499,23 @@ abstract class Request extends RegistrationRequest
         return $this->deliveryAddress2;
     }
 
+    public function setDeliveryAddress2($value)
+    {
+        $this->deliveryAddress2 = $value;
+
+        return $this;
+    }
+
     public function getDeliveryCity()
     {
         return $this->deliveryCity;
+    }
+
+    public function setDeliveryCity($value)
+    {
+        $this->deliveryCity = $value;
+
+        return $this;
     }
 
     public function getDeliveryPostCode()
@@ -352,9 +523,23 @@ abstract class Request extends RegistrationRequest
         return $this->deliveryPostCode;
     }
 
+    public function setDeliveryPostCode($value)
+    {
+        $this->deliveryPostCode = $value ? $value : '-';
+
+        return $this;
+    }
+
     public function getDeliveryCountry()
     {
         return $this->deliveryCountry;
+    }
+
+    public function setDeliveryCountry($value)
+    {
+        $this->deliveryCountry = $value;
+
+        return $this;
     }
 
     public function getDeliveryState()
@@ -362,9 +547,23 @@ abstract class Request extends RegistrationRequest
         return $this->deliveryState;
     }
 
+    public function setDeliveryState($value)
+    {
+        $this->deliveryState = $value;
+
+        return $this;
+    }
+
     public function getDeliveryPhone()
     {
         return $this->deliveryPhone;
+    }
+
+    public function setDeliveryPhone($value)
+    {
+        $this->deliveryPhone = $value;
+
+        return $this;
     }
 
     public function getCustomerEmail()
@@ -372,9 +571,23 @@ abstract class Request extends RegistrationRequest
         return $this->customerEmail;
     }
 
+    public function setCustomerEmail($value)
+    {
+        $this->customerEmail = $value;
+
+        return $this;
+    }
+
     public function getBasket()
     {
         return $this->basket;
+    }
+
+    public function setBasket($value)
+    {
+        $this->basket = $value;
+
+        return $this;
     }
 
     public function getAllowGiftAid()
@@ -382,9 +595,23 @@ abstract class Request extends RegistrationRequest
         return $this->allowGiftAid;
     }
 
+    public function setAllowGiftAid($value)
+    {
+        $this->allowGiftAid = (int) $value;
+
+        return $this;
+    }
+
     public function getApplyAvsCv2()
     {
         return $this->applyAvsCv2;
+    }
+
+    public function setApplyAvsCv2($value)
+    {
+        $this->applyAvsCv2 = (int) $value;
+
+        return $this;
     }
 
     public function getApply3dSecure()
@@ -392,9 +619,35 @@ abstract class Request extends RegistrationRequest
         return $this->apply3dSecure;
     }
 
+    public function setApply3dSecure($value)
+    {
+        $this->apply3dSecure = (int) $value;
+
+        return $this;
+    }
+
+    public function getProfile()
+    {
+        return $this->profile;
+    }
+
+    public function setProfile($value)
+    {
+        $this->profile = $value;
+
+        return $this;
+    }
+
     public function getBillingAgreement()
     {
         return $this->billingAgreement;
+    }
+
+    public function setBillingAgreement($value)
+    {
+        $this->billingAgreement = (int) $value;
+
+        return $this;
     }
 
     public function getAccountType()
@@ -402,149 +655,11 @@ abstract class Request extends RegistrationRequest
         return $this->accountType;
     }
 
-    public function setAmount($value)
-    {
-        $this->amount = (float) $value;
-    }
-
-    public function setDescription($value)
-    {
-        $this->description = $value;
-    }
-
-    public function setToken($value)
-    {
-        $this->token = $value;
-    }
-
-    public function setStoreToken($value = 0)
-    {
-        $this->storeToken = (int)(bool) $value;
-    }
-
-    public function setBillingSurname($value)
-    {
-        $this->billingSurname = $value;
-    }
-
-    public function setBillingFirstnames($value)
-    {
-        $this->billingFirstnames = $value;
-    }
-
-    public function setBillingAddress1($value)
-    {
-        $this->billingAddress1 = $value;
-    }
-
-    public function setBillingAddress2($value)
-    {
-        $this->billingAddress2 = $value;
-    }
-
-    public function setBillingCity($value)
-    {
-        $this->billingCity = $value;
-    }
-
-    public function setBillingPostCode($value)
-    {
-        $this->billingPostCode = $value ? $value : '-';
-    }
-
-    public function setBillingCountry($value)
-    {
-        $this->billingCountry = $value;
-    }
-
-    public function setBillingState($value)
-    {
-        $this->billingState = $value;
-    }
-
-    public function setBillingPhone($value)
-    {
-        $this->billingPhone = $value;
-    }
-
-    public function setDeliverySurname($value)
-    {
-        $this->deliverySurname = $value;
-    }
-
-    public function setDeliveryFirstnames($value)
-    {
-        $this->deliveryFirstnames = $value;
-    }
-
-    public function setDeliveryAddress1($value)
-    {
-        $this->deliveryAddress1 = $value;
-    }
-
-    public function setDeliveryAddress2($value)
-    {
-        $this->deliveryAddress2 = $value;
-    }
-
-    public function setDeliveryCity($value)
-    {
-        $this->deliveryCity = $value;
-    }
-
-    public function setDeliveryPostCode($value)
-    {
-        $this->deliveryPostCode = $value ? $value : '-';
-    }
-
-    public function setDeliveryCountry($value)
-    {
-        $this->deliveryCountry = $value;
-    }
-
-    public function setDeliveryState($value)
-    {
-        $this->deliveryState = $value;
-    }
-
-    public function setDeliveryPhone($value)
-    {
-        $this->deliveryPhone = $value;
-    }
-
-    public function setCustomerEmail($value)
-    {
-        $this->customerEmail = $value;
-    }
-
-    public function setBasket($value)
-    {
-        $this->basket = $value;
-    }
-
-    public function setAllowGiftAid($value)
-    {
-        $this->allowGiftAid = (int) $value;
-    }
-
-    public function setApplyAvsCv2($value)
-    {
-        $this->applyAvsCv2 = (int) $value;
-    }
-
-    public function setApply3dSecure($value)
-    {
-        $this->apply3dSecure = (int) $value;
-    }
-
-    public function setBillingAgreement($value)
-    {
-        $this->billingAgreement = (int) $value;
-    }
-
     public function setAccountType($value)
     {
         $this->accountType = $value;
+
+        return $this;
     }
 
     // convenience setters ---------------------------------------------------
@@ -569,6 +684,8 @@ abstract class Request extends RegistrationRequest
             $this->setBillingState($address['state']);
         }
         $this->setBillingPhone($address['phone']);
+
+        return $this;
     }
 
     /**
@@ -591,6 +708,8 @@ abstract class Request extends RegistrationRequest
             $this->setDeliveryState($address['state']);
         }
         $this->setDeliveryPhone($address['phone']);
+
+        return $this;
     }
 
     /**
@@ -614,6 +733,8 @@ abstract class Request extends RegistrationRequest
             );
         }
         $this->setBasket(count($lines) . ':' . implode(':', $lines));
+
+        return $this;
     }
 
     /**

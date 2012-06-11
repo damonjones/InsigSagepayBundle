@@ -4,7 +4,7 @@ namespace Insig\SagepayBundle\Model\Transaction\Notification;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-use Insig\SagepayBundle\Model\NotificationRequest;
+use Insig\SagepayBundle\Model\Base\NotificationRequest as BaseNotificationRequest;
 
 /**
  * Implemented according to the Sagepay Server Protocol and Integration
@@ -17,8 +17,7 @@ use Insig\SagepayBundle\Model\NotificationRequest;
  *
  * @author Damon Jones
  */
-
-class Request extends NotificationRequest
+class Request extends BaseNotificationRequest
 {
     // Alphabetic. Max 20 characters.
     // "PAYMENT", "DEFERRED" or "AUTHENTICATE" ONLY.
@@ -42,7 +41,7 @@ class Request extends NotificationRequest
     // Only present if the transaction was successfully authorised
     // (Status = "OK")
     /**
-     * @Assert\type("integer")
+     * @Assert\Type("integer")
      */
     protected $txAuthNo;
 
@@ -130,24 +129,26 @@ class Request extends NotificationRequest
     protected $vpsSignature;
 
     // public API ------------------------------------------------------------
-    public function __construct($data)
+    public function __construct($arr)
     {
-        parent::__construct($data);
+        parent::__construct($arr);
 
-        parse_str($data, $arr);
-
-        if (array_key_exists('TxAuthNo', $arr) && !empty($arr['TxAuthNo'])) {
-            $this->txAuthNo             = (int) $arr['TxAuthNo'];
+        if ('OK' === $this->status) {
+            $this->txAuthNo         = (int) $arr['TxAuthNo'];
         }
-        $this->avsCv2               = $arr['AVSCV2'];
-        $this->addressResult        = $arr['AddressResult'];
-        $this->postCodeResult       = $arr['PostCodeResult'];
-        $this->cv2Result            = $arr['CV2Result'];
+
+        if ('AUTHENTICATED' !== $this->status && 'REGISTERED' !== $this->status) {
+            $this->avsCv2           = $arr['AVSCV2'];
+            $this->addressResult    = $arr['AddressResult'];
+            $this->postCodeResult   = $arr['PostCodeResult'];
+            $this->cv2Result        = $arr['CV2Result'];
+        }
         $this->giftAid              = $arr['GiftAid'];
         $this->threeDSecureStatus   = $arr['3DSecureStatus'];
-        if (array_key_exists('CAVV', $arr)) {
+        if ('OK' === $this->threeDSecureStatus) {
             $this->cavv             = $arr['CAVV'];
         }
+        // PayPal transactions only
         if (array_key_exists('AddressStatus', $arr)) {
             $this->addressStatus    = $arr['AddressStatus'];
         }
