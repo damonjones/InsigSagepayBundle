@@ -388,7 +388,6 @@ class SagepayManager
         if ($this->validator) {
             $errors = $this->validator->validate($request);
             if (count($errors)) {
-                var_dump($errors);
                 throw new InvalidRequestException;
             }
         }
