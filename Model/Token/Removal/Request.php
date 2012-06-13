@@ -36,6 +36,15 @@ class Request extends BaseRegistrationRequest
      */
     protected $token;
 
+    // public API ------------------------------------------------------------
+
+    public function __construct($token)
+    {
+        parent::__construct();
+
+        $this->token = $token;
+    }
+
     public function getToken()
     {
         return $this->token;
@@ -78,10 +87,10 @@ class Request extends BaseRegistrationRequest
     public function toArray()
     {
         return array_filter(array(
-            'VPSProtocol'           => $this->vpsProtocol,
-            'TxType'                => $this->txType,
-            'Vendor'                => $this->vendor,
-            'Token'                 => $this->token
+            'VPSProtocol'   => $this->vpsProtocol,
+            'TxType'        => $this->txType,
+            'Vendor'        => $this->vendor,
+            'Token'         => $this->token
         ));
     }
 }

@@ -29,6 +29,9 @@ use Insig\SagepayBundle\Model\Token\Registration\Response as TokenRegistrationRe
 use Insig\SagepayBundle\Model\Token\Notification\Request as TokenNotificationRequest;
 use Insig\SagepayBundle\Model\Token\Notification\Response as TokenNotificationResponse;
 
+use Insig\SagepayBundle\Model\Token\Removal\Request as TokenRemovalRequest;
+use Insig\SagepayBundle\Model\Token\Removal\Response as TokenRemovalResponse;
+
 use Insig\SagepayBundle\Model\Transaction\TransactionInterface;
 
 use Insig\SagepayBundle\Model\Additional\ReleaseRequest;
@@ -236,9 +239,17 @@ class SagepayManager
         );
     }
 
+    public function removeToken($token)
+    {
+        $request = new TokenRemovalRequest($token);
+        $responseArray = $this->sendRequest($request);
+
+        return new TokenRemovalResponse($responseArray);
+    }
+
     // Additional Transaction Protocols
 
-    public function performRelease(TransactionInterface $transaction, $amount = null)
+    public function releaseTransaction(TransactionInterface $transaction, $amount = null)
     {
         $request = new ReleaseRequest($transaction);
         if ($amount) {
@@ -249,7 +260,7 @@ class SagepayManager
         return new ReleaseResponse($responseArray);
     }
 
-    public function performAbort(TransactionInterface $transaction)
+    public function abortTransaction(TransactionInterface $transaction)
     {
         $request = new AbortRequest($transaction);
         $responseArray = $this->sendRequest($request);
@@ -257,7 +268,7 @@ class SagepayManager
         return new AbortResponse($responseArray);
     }
 
-    public function performRefund(TransactionInterface $transaction, $amount, $currency, $description, TransactionInterface &$relatedTransaction)
+    public function refundTransaction(TransactionInterface $transaction, $amount, $currency, $description, TransactionInterface &$relatedTransaction)
     {
         $request = new RefundRequest($transaction, $amount, $currency, $description);
         $responseArray = $this->sendRequest($request);
@@ -272,7 +283,7 @@ class SagepayManager
         return $response;
     }
 
-    public function performRepeat(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
+    public function repeatTransaction(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
     {
         $request = new RepeatRequest($transaction, $amount, $currency, $description, $cv2);
         $responseArray = $this->sendRequest($request);
@@ -288,7 +299,7 @@ class SagepayManager
         return $response;
     }
 
-    public function performRepeatDeferred(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
+    public function repeatDeferredTransaction(TransactionInterface $transaction, $amount, $currency, $description, $cv2, TransactionInterface &$relatedTransaction)
     {
         $request = new RepeatDeferredRequest($transaction, $amount, $currency, $description, $cv2);
         $responseArray = $this->sendRequest($request);
@@ -304,7 +315,7 @@ class SagepayManager
         return $response;
     }
 
-    public function performVoid(TransactionInterface $transaction)
+    public function voidTransaction(TransactionInterface $transaction)
     {
         $request = new VoidRequest($transaction);
         $response = $this->sendRequest($request);
@@ -312,7 +323,7 @@ class SagepayManager
         return new VoidResponse($response);
     }
 
-    public function performCancel(TransactionInterface $transaction)
+    public function cancelTransaction(TransactionInterface $transaction)
     {
         $request = new CancelRequest($transaction);
         $response = $this->sendRequest($request);
@@ -320,7 +331,7 @@ class SagepayManager
         return new CancelResponse($response);
     }
 
-    public function performAuthorise(TransactionInterface $transaction, $amount, $description, $applyAvsCv2, TransactionInterface &$relatedTransaction)
+    public function authoriseTransaction(TransactionInterface $transaction, $amount, $description, $applyAvsCv2, TransactionInterface &$relatedTransaction)
     {
         $request = new AuthoriseRequest($transaction, $amount, $description, $applyAvsCv2);
         $responseArray = $this->sendRequest($request);
